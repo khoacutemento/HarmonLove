@@ -8,6 +8,8 @@ import { RiArrowDropDownLine, RiArrowDropUpLine } from "react-icons/ri";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import axiosInstance from "../../config/axios";
+import { initSignalR } from "../../utils/signalR"; // Import SignalR setup
+import { initWebRTC, startCall } from "../../utils/webRTC"; // Import WebRTC setup
 
 function Listener() {
   const navigate = useNavigate();
@@ -35,6 +37,14 @@ function Listener() {
   const listenerTypeDropdownRef = useRef(null);
   const priceDropdownRef = useRef(null);
 
+  // SignalR and WebRTC state
+  const [signalRConnection, setSignalRConnection] = useState(null);
+  const [peerConnection, setPeerConnection] = useState(null);
+  const [localStream, setLocalStream] = useState(null);
+  const [remoteStream, setRemoteStream] = useState(null);
+  const [isCallActive, setIsCallActive] = useState(false);
+  const [targetConnectionId, setTargetConnectionId] = useState(null);
+
   const topicNameEnum = [
     { key: "StressAnxiety", label: "Stress Lo Âu" },
     { key: "Depression", label: "Trầm Cảm" },
@@ -56,6 +66,7 @@ function Listener() {
   const durationOptions = ["30 phút", "1 tiếng", "2 tiếng", "Tùy chọn"];
   const topicOptions = ["Rối loạn lo âu", "Trầm cảm", "PTSD", "OCD", "Khác"];
 
+  // Fetch listeners
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -75,6 +86,7 @@ function Listener() {
     fetchData();
   }, [filters]);
 
+  // Handle click outside to close dropdowns
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -97,16 +109,18 @@ function Listener() {
     };
   }, []);
 
+  // Fetch available slots for the selected listener and date
   useEffect(() => {
     if (selectedListener && selectedDate) {
       const fetchAvailableSlots = async () => {
         try {
           const formattedDate = selectedDate.toISOString().split("T")[0];
           const response = await axiosInstance.get(
-            `/workshift/account/${selectedListener.accountId}/available?date=${formattedDate}`,
+            `/api/workshift/account/${selectedListener.accountId}/available?date=${formattedDate}`,
           );
+          console.log("Available slots:", response.data.data);
           if (response.data.status === "200") {
-            setAvailableSlots(response.data.data.items || []);
+            setAvailableSlots(response.data.data || []);
           } else {
             toast.error(response.data.message || "Lỗi khi lấy ca làm việc");
             setAvailableSlots([]);
@@ -126,7 +140,7 @@ function Listener() {
     setPriceSortOpen(false);
   };
 
-  const handleTopicFilter = (topicVtopic) => {
+  const handleTopicFilter = (topic) => {
     console.log("Selected topic:", topic);
     setFilters((prev) => ({ ...prev, topic }));
     setTopicFilterOpen(false);
@@ -174,37 +188,57 @@ function Listener() {
 
     try {
       const formattedDate =
-        selectedDate.toISOString().split("T")[0] + "T15:26:47.473Z"; // Match the format in the API
+        selectedDate.toISOString().split("T")[0] + "T15:26:47.473Z";
       const response = await axiosInstance.post(
         `/booking?id=${selectedSlot.id}`,
         {
           date: formattedDate,
-          status: "NONE",
-          duration: duration,
-          topic: topic,
-          userRequest: userRequest || undefined, // Include user request if provided
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
+          status: "Upcoming",
         },
       );
 
       if (response.data.status === "200") {
         toast.success(
-          `Đã đặt lịch thành công với ${selectedListener.name} vào ${selectedSlot.day}, từ ${selectedSlot.startTime} đến ${selectedSlot.endTime}!`,
+          `Đã đặt lịch thành công với ${selectedListener.listenerName} vào ${selectedSlot.day}, từ ${selectedSlot.startTime} đến ${selectedSlot.endTime}!`,
         );
         setIsModalOpen(false);
-        setSelectedListener(null);
-        setSelectedSlot(null);
-        setAvailableSlots([]);
       } else {
         toast.error(response.data.message || "Lỗi khi đặt lịch");
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Lỗi khi đặt lịch");
     }
+  };
+
+  const handleStartCall = async (targetId) => {
+    const stream = await startCall(peerConnection, signalRConnection, targetId);
+    if (stream) {
+      setLocalStream(stream);
+      setIsCallActive(true);
+    }
+  };
+
+  const handleEndCall = async () => {
+    await signalRConnection
+      .invoke("EndCall")
+      .catch((err) => console.error("EndCall failed:", err));
+    cleanupCall();
+  };
+
+  const cleanupCall = () => {
+    if (localStream) {
+      localStream.getTracks().forEach((track) => track.stop());
+      setLocalStream(null);
+    }
+    if (remoteStream) {
+      setRemoteStream(null);
+    }
+    if (peerConnection) {
+      peerConnection.close();
+      setPeerConnection(null);
+    }
+    setIsCallActive(false);
+    setTargetConnectionId(null);
   };
 
   const handleCloseModal = () => {
@@ -466,7 +500,13 @@ function Listener() {
                 </div>
 
                 {/* Confirm Button */}
-                <div className="flex justify-end">
+                <div className="flex justify-end gap-2">
+                  <button
+                    className="rounded-lg bg-gray-500 px-6 py-2 text-white transition-colors hover:bg-gray-600"
+                    onClick={handleCloseModal}
+                  >
+                    Hủy
+                  </button>
                   <button
                     className="rounded-lg bg-purple-500 px-6 py-2 text-white transition-colors hover:bg-purple-600"
                     onClick={handleConfirmBooking}
@@ -476,6 +516,25 @@ function Listener() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Call Interface */}
+      {isCallActive && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
+            <h2 className="mb-4 text-xl font-bold">Cuộc gọi đang diễn ra</h2>
+            <div className="mb-4">
+              <p>Đang gọi với: {selectedListener?.name}</p>
+              {/* Add audio elements for local and remote streams if needed */}
+            </div>
+            <button
+              className="w-full rounded-lg bg-red-500 px-4 py-2 text-white hover:bg-red-600"
+              onClick={handleEndCall}
+            >
+              Kết thúc cuộc gọi
+            </button>
           </div>
         </div>
       )}

@@ -202,6 +202,9 @@ const Header = () => {
                       <a href="/profile">Hồ Sơ</a>
                     </li>
                     <li className="cursor-pointer px-4 py-2 hover:bg-gray-100">
+                      <a href="/myblog"> Blog của tôi</a>
+                    </li>
+                    <li className="cursor-pointer px-4 py-2 hover:bg-gray-100">
                       <a href="/deposit"> Nạp Tiền</a>
                     </li>
                     <li

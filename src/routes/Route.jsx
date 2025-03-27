@@ -22,9 +22,12 @@ import FriendsList from "../pages/Friends/FriendsList";
 import FriendsRequests from "../pages/Friends/FriendsRequests";
 import Call from "../pages/Call";
 import CallWindow from "../pages/Call/CallWindow";
+import MyBlog from "../pages/MyBlog";
+import MyBlogDetail from "../pages/MyBlog/MyBlogDetail";
 
 const ROLES = {
   CUSTOMER: "Customer",
+  LISTENER: "Listener",
   ADMIN: "Admin",
 };
 const publicRoutes = [
@@ -56,6 +59,8 @@ const customerRoutes = [
     ],
   },
   { path: "calls", element: <Call /> },
+  { path: "myBlog", element: <MyBlog /> },
+  { path: "myBlog/:id", element: <MyBlogDetail /> },
   { path: "call/random", element: <CallWindow /> },
   { path: "deposit", element: <Deposit /> },
   { path: "deposit/detail", element: <DepositDetail /> },
