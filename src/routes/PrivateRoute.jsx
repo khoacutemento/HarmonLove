@@ -10,7 +10,7 @@ const PrivateRoute = ({ allowedRoles }) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(user?.role)) {
+  if (allowedRoles && !allowedRoles.includes(user?.role.toLowerCase())) {
     toast.error("Bạn không có quyền truy cập trang này");
     return <Navigate to="/unauthorized" replace />;
   }

@@ -16,10 +16,9 @@ export const getPremiums = async () => {
 
 export const buyPremium = async (accountId, premiumId) => {
   try {
-    const response = await axiosInstance.post(`${SERVER_URL}/userinfo`, {
-      accountId: accountId,
-      premiumId: premiumId,
-    });
+    const response = await axiosInstance.post(
+      `${SERVER_URL}/userinfo?accountId=${accountId}&premiumId=${premiumId}`,
+    );
     if (response.status === 200) {
       return response.data.data;
     } else {

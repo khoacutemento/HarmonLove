@@ -8,8 +8,6 @@ import { RiArrowDropDownLine, RiArrowDropUpLine } from "react-icons/ri";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import axiosInstance from "../../config/axios";
-import { initSignalR } from "../../utils/signalR"; // Import SignalR setup
-import { initWebRTC, startCall } from "../../utils/webRTC"; // Import WebRTC setup
 
 function Listener() {
   const navigate = useNavigate();
@@ -36,14 +34,6 @@ function Listener() {
   const topicDropdownRef = useRef(null);
   const listenerTypeDropdownRef = useRef(null);
   const priceDropdownRef = useRef(null);
-
-  // SignalR and WebRTC state
-  const [signalRConnection, setSignalRConnection] = useState(null);
-  const [peerConnection, setPeerConnection] = useState(null);
-  const [localStream, setLocalStream] = useState(null);
-  const [remoteStream, setRemoteStream] = useState(null);
-  const [isCallActive, setIsCallActive] = useState(false);
-  const [targetConnectionId, setTargetConnectionId] = useState(null);
 
   const topicNameEnum = [
     { key: "StressAnxiety", label: "Stress Lo Âu" },
@@ -209,38 +199,6 @@ function Listener() {
       toast.error(error.response?.data?.message || "Lỗi khi đặt lịch");
     }
   };
-
-  const handleStartCall = async (targetId) => {
-    const stream = await startCall(peerConnection, signalRConnection, targetId);
-    if (stream) {
-      setLocalStream(stream);
-      setIsCallActive(true);
-    }
-  };
-
-  const handleEndCall = async () => {
-    await signalRConnection
-      .invoke("EndCall")
-      .catch((err) => console.error("EndCall failed:", err));
-    cleanupCall();
-  };
-
-  const cleanupCall = () => {
-    if (localStream) {
-      localStream.getTracks().forEach((track) => track.stop());
-      setLocalStream(null);
-    }
-    if (remoteStream) {
-      setRemoteStream(null);
-    }
-    if (peerConnection) {
-      peerConnection.close();
-      setPeerConnection(null);
-    }
-    setIsCallActive(false);
-    setTargetConnectionId(null);
-  };
-
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedListener(null);
@@ -516,25 +474,6 @@ function Listener() {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Call Interface */}
-      {isCallActive && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
-            <h2 className="mb-4 text-xl font-bold">Cuộc gọi đang diễn ra</h2>
-            <div className="mb-4">
-              <p>Đang gọi với: {selectedListener?.name}</p>
-              {/* Add audio elements for local and remote streams if needed */}
-            </div>
-            <button
-              className="w-full rounded-lg bg-red-500 px-4 py-2 text-white hover:bg-red-600"
-              onClick={handleEndCall}
-            >
-              Kết thúc cuộc gọi
-            </button>
           </div>
         </div>
       )}

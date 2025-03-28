@@ -1,5 +1,4 @@
 import * as signalR from "@microsoft/signalr";
-
 export const initSignalR = ({
   onRandomUserSelected,
   onNoAvailableUsers,
@@ -10,10 +9,13 @@ export const initSignalR = ({
   onReceiveOffer,
   onReceiveAnswer,
   onReceiveCandidate,
+  onConnectedForBooking,
+  onGetUserForBooking,
+  onUserNotConnectedForBooking,
 }) => {
   console.log("Setting up SignalR connection...");
   const connection = new signalR.HubConnectionBuilder()
-    .withUrl("https://harmon.love/callhub") // From your logs
+    .withUrl("https://harmon.love/callhub")
     .withAutomaticReconnect()
     .build();
 
@@ -22,7 +24,7 @@ export const initSignalR = ({
     .then(() => console.log("SignalR connected successfully"))
     .catch((err) => console.error("SignalR connection failed:", err));
 
-  // Register hub event handlers based on backend methods
+  // Existing hub event handlers
   connection.on("RandomUserSelected", (targetConnectionId) => {
     console.log("Random user selected:", targetConnectionId);
     onRandomUserSelected(targetConnectionId);
@@ -58,6 +60,20 @@ export const initSignalR = ({
   connection.on("ReceiveCandidate", (callerConnectionId, candidate) => {
     console.log("Received candidate from:", callerConnectionId, candidate);
     onReceiveCandidate(callerConnectionId, candidate);
+  });
+
+  // New booking-related handlers
+  connection.on("ConnectedForBooking", (success) => {
+    console.log("Connected for booking:", success);
+    onConnectedForBooking(success);
+  });
+  connection.on("GetUserForBooking", (targetConnectionId) => {
+    console.log("Got user for booking:", targetConnectionId);
+    onGetUserForBooking(targetConnectionId);
+  });
+  connection.on("UserNotConnectedForBooking", () => {
+    console.log("Other user not connected for booking");
+    onUserNotConnectedForBooking();
   });
 
   connection.onclose((err) => console.log("SignalR connection closed:", err));
