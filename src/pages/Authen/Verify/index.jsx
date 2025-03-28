@@ -5,6 +5,8 @@ import axios from "axios";
 import Harmon_Logo from "../../../assets/images/Harmon_Logo.png";
 import { resendOtp, verify } from "../../../services/authService";
 import { buyPremium } from "../../../services/premiumService";
+import axiosInstance from "../../../config/axios";
+
 const VerifyOTP = () => {
   const navigate = useNavigate();
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
@@ -35,8 +37,11 @@ const VerifyOTP = () => {
         toast.error("Mã OTP không đúng");
         return;
       }
+      console.log("response OTP", response);
 
       toast.success("Xác thực thành công");
+
+      await updateUserPresence(response.id);
 
       const buyNormalPremium = async () => {
         try {
@@ -46,7 +51,6 @@ const VerifyOTP = () => {
           );
           if (res) {
             toast.success("Đã mua gói Normal thành công");
-            navigate("/login");
           } else {
             toast.error("Lỗi khi mua gói thông tin thông tin");
           }
@@ -57,11 +61,35 @@ const VerifyOTP = () => {
       };
 
       await buyNormalPremium();
+      navigate("/login");
     } catch (error) {
       console.error(error);
       toast.error("Có lỗi xảy ra, vui lòng thử lại");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // New function to call the user-presence API
+  const updateUserPresence = async (userId) => {
+    try {
+      const presenceResponse = await axiosInstance.post(
+        `api/user-presence/account/${userId}`,
+        {
+          offline: true,
+          online: true,
+          inCall: true,
+        },
+      );
+      console.log("presenceResponse", presenceResponse);
+      if (presenceResponse.status === 200) {
+        toast.success("Cập nhật trạng thái người dùng thành công");
+      } else {
+        toast.error("Không thể cập nhật trạng thái người dùng");
+      }
+    } catch (error) {
+      console.error("Error updating user presence:", error);
+      toast.error("Có lỗi khi cập nhật trạng thái người dùng");
     }
   };
 

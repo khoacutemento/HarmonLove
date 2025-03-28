@@ -27,7 +27,7 @@ import { initWebRTC, startCall } from "../../utils/webRTC";
 const Profile = () => {
   const storedUser = localStorage.getItem("user");
   const { accountId } = storedUser ? JSON.parse(storedUser) : {};
-  const navigation = useNavigate();
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [bookings, setBookings] = useState([]);
@@ -45,35 +45,30 @@ const Profile = () => {
   const [callStatus, setCallStatus] = useState("idle");
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
-  const [listenerConnectionId, setListenerConnectionId] = useState(null);
+  const [targetConnectionId, setTargetConnectionId] = useState(null);
+
   const localAudioRef = useRef(null);
   const remoteAudioRef = useRef(null);
   const pageSize = 10;
 
   const handleDeposit = () => {
-    navigation("/deposit");
+    navigate("/deposit");
   };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-
         const userResponse = await axiosInstance.get(
           `/user/account/${accountId}`,
         );
-        if (userResponse.data.status === "200") {
-          setUser(userResponse.data.data);
-        } else {
-          setError(userResponse.data.message);
-        }
+        if (userResponse.data.status === "200") setUser(userResponse.data.data);
+        else setError(userResponse.data.message);
 
         const walletResponse = await axiosInstance.get("/wallet");
-        if (walletResponse.data.status === "200") {
+        if (walletResponse.data.status === "200")
           setWalletBalance(walletResponse.data.data.balance);
-        } else {
-          setError(walletResponse.data.message);
-        }
+        else setError(walletResponse.data.message);
 
         const transResponse = await axiosInstance.get(
           `/transaction?page=${currentPage}&size=${pageSize}`,
@@ -81,9 +76,7 @@ const Profile = () => {
         if (transResponse.data.status === "200") {
           setTransactions(transResponse.data.data.items);
           setTotalPages(transResponse.data.data.totalPages);
-        } else {
-          setError(transResponse.data.message);
-        }
+        } else setError(transResponse.data.message);
 
         const bookingResponse = await axiosInstance.get(
           `/booking/account?page=${currentBookingPage}&size=${pageSize}`,
@@ -91,157 +84,158 @@ const Profile = () => {
         if (bookingResponse.data.status === "200") {
           setBookings(bookingResponse.data.data.items);
           setTotalBookingPages(bookingResponse.data.data.totalPages);
-        } else {
-          setError(bookingResponse.data.message);
-        }
+        } else setError(bookingResponse.data.message);
       } catch (err) {
         setError("Có lỗi xảy ra khi tải dữ liệu");
-        console.error("Error fetching data:", err);
+        console.error("Error fetching data:", err.response.message);
       } finally {
         setLoading(false);
       }
     };
 
-    if (accountId) {
-      fetchData();
-    }
+    if (accountId) fetchData();
   }, [accountId, currentPage, currentBookingPage]);
 
   useEffect(() => {
-    if (showBookingModal && selectedBooking) {
-      const connection = initSignalR({
-        onIncomingCall: (callerConnectionId) => {
-          console.log("Incoming call from:", callerConnectionId);
-          setCallStatus("incoming_call");
-          setListenerConnectionId(callerConnectionId);
-        },
-        onCallAccepted: (targetConnectionId) => {
-          console.log("Call accepted by:", targetConnectionId);
-          setCallStatus("in_call");
-          setListenerConnectionId(targetConnectionId);
-        },
-        onCallRejected: () => {
-          console.log("Call rejected");
-          setCallStatus("idle");
-          alert("Cuộc gọi đã bị từ chối bởi người lắng nghe");
-        },
-        onCallEnded: () => {
-          console.log("Call ended");
-          handleEndCall();
-        },
-        onReceiveOffer: async (callerConnectionId, offer) => {
-          console.log("Received offer from:", callerConnectionId, offer);
-          try {
-            await peerConnection.setRemoteDescription(JSON.parse(offer));
-            const answer = await peerConnection.createAnswer();
-            await peerConnection.setLocalDescription(answer);
-            connection.invoke(
-              "SendAnswer",
-              callerConnectionId,
-              JSON.stringify(answer),
-            );
-            setCallStatus("in_call");
-          } catch (error) {
-            console.error("Error handling offer:", error);
-          }
-        },
-        onReceiveAnswer: async (callerConnectionId, answer) => {
-          console.log("Received answer from:", callerConnectionId, answer);
-          try {
-            await peerConnection.setRemoteDescription(JSON.parse(answer));
-            setCallStatus("in_call");
-          } catch (error) {
-            console.error("Error handling answer:", error);
-          }
-        },
-        onReceiveCandidate: async (callerConnectionId, candidate) => {
-          console.log(
-            "Received candidate from:",
-            callerConnectionId,
-            candidate,
+    if (!showBookingModal || !selectedBooking) return;
+
+    const connection = initSignalR({
+      onIncomingCall: (callerConnectionId) => {
+        setCallStatus("incoming_call");
+        setTargetConnectionId(callerConnectionId);
+      },
+      onCallAccepted: (targetId) => {
+        setCallStatus("in_call");
+        setTargetConnectionId(targetId);
+      },
+      onCallRejected: () => {
+        setCallStatus("idle");
+        alert("Cuộc gọi đã bị từ chối bởi người lắng nghe");
+      },
+      onCallEnded: () => {
+        handleEndCall();
+      },
+      onReceiveOffer: async (callerId, offer) => {
+        try {
+          const parsedOffer = JSON.parse(offer);
+          await peerConnection.setRemoteDescription(
+            new RTCSessionDescription(parsedOffer),
           );
-          try {
-            await peerConnection.addIceCandidate(JSON.parse(candidate));
-          } catch (error) {
-            console.error("Error adding ICE candidate:", error);
-          }
-        },
-      });
-      setSignalRConnection(connection);
-
-      const pc = initWebRTC({
-        onIceCandidate: (candidate) => {
-          console.log("Sending ICE candidate");
-          if (listenerConnectionId) {
-            connection.invoke(
-              "SendCandidate",
-              listenerConnectionId,
-              JSON.stringify(candidate),
-            );
-          }
-        },
-        onTrack: (event) => {
-          console.log("Received remote track", event);
-          if (remoteAudioRef.current && event.streams[0]) {
-            remoteAudioRef.current.srcObject = event.streams[0];
-            setRemoteStream(event.streams[0]);
-          }
-        },
-      });
-      setPeerConnection(pc);
-
-      // Register the user for the booking
-      connection.invoke("OnConnectedForBookingAsync", accountId);
-
-      return () => {
-        connection?.stop();
-        pc?.close();
-        if (localStream) {
-          localStream.getTracks().forEach((track) => track.stop());
+          const answer = await peerConnection.createAnswer();
+          await peerConnection.setLocalDescription(answer);
+          connection.invoke("SendAnswer", callerId, JSON.stringify(answer));
+        } catch (error) {
+          console.error("Error handling offer:", error);
         }
-      };
-    }
-  }, [showBookingModal, selectedBooking, accountId, listenerConnectionId]);
+      },
+      onReceiveAnswer: async (callerId, answer) => {
+        try {
+          await peerConnection.setRemoteDescription(
+            new RTCSessionDescription(JSON.parse(answer)),
+          );
+        } catch (error) {
+          console.error("Error handling answer:", error);
+        }
+      },
+      onReceiveCandidate: async (callerId, candidate) => {
+        try {
+          await peerConnection.addIceCandidate(
+            new RTCIceCandidate(JSON.parse(candidate)),
+          );
+        } catch (error) {
+          console.error("Error handling candidate:", error);
+        }
+      },
+      onConnectedForBooking: (success) => {
+        if (success) {
+          connection.invoke("GetUserForBooking", selectedBooking.id, accountId);
+        } else {
+          alert("Không thể kết nối cho cuộc gọi. Vui lòng thử lại.");
+          setCallStatus("idle");
+        }
+      },
+      onGetUserForBooking: (connectionId) => {
+        setTargetConnectionId(connectionId);
+        setCallStatus("ready_to_call"); // New state to indicate we can start the call
+      },
+      onUserNotConnectedForBooking: () => {
+        alert("Người lắng nghe chưa sẵn sàng. Vui lòng thử lại sau.");
+        setCallStatus("idle");
+      },
+    });
+    setSignalRConnection(connection);
+
+    const pc = initWebRTC({
+      onIceCandidate: (candidate) => {
+        if (targetConnectionId) {
+          connection.invoke(
+            "SendCandidate",
+            targetConnectionId,
+            JSON.stringify(candidate),
+          );
+        }
+      },
+      onTrack: (event) => {
+        if (remoteAudioRef.current) {
+          remoteAudioRef.current.srcObject = event.streams[0];
+          setRemoteStream(event.streams[0]);
+        }
+      },
+    });
+    setPeerConnection(pc);
+
+    connection.invoke("ConnectedForBooking", selectedBooking.id, accountId);
+
+    return () => {
+      connection?.stop();
+      pc?.close();
+      if (localStream) localStream.getTracks().forEach((track) => track.stop());
+      setSignalRConnection(null);
+      setPeerConnection(null);
+      setLocalStream(null);
+      setRemoteStream(null);
+    };
+  }, [showBookingModal, selectedBooking, accountId]);
 
   const handleViewDetails = (booking) => {
     setSelectedBooking(booking);
     setShowBookingModal(true);
+    setCallStatus("idle");
   };
 
   const handleStartCall = async () => {
-    if (!signalRConnection || !peerConnection || !selectedBooking) return;
+    if (!signalRConnection || !peerConnection || !targetConnectionId) {
+      alert("Chưa sẵn sàng để gọi. Vui lòng đợi hoặc thử lại.");
+      return;
+    }
 
     try {
       setCallStatus("calling");
-
-      // Initiate the call to the specific listener
-      await signalRConnection.invoke("StartCall", selectedBooking.listenerId);
+      await signalRConnection.invoke("StartCall", targetConnectionId);
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream
         .getTracks()
         .forEach((track) => peerConnection.addTrack(track, stream));
       setLocalStream(stream);
-      if (localAudioRef.current) {
-        localAudioRef.current.srcObject = stream;
-      }
+      if (localAudioRef.current) localAudioRef.current.srcObject = stream;
 
       const offer = await peerConnection.createOffer();
       await peerConnection.setLocalDescription(offer);
-      signalRConnection.invoke(
+      await signalRConnection.invoke(
         "SendOffer",
-        selectedBooking.listenerId,
+        targetConnectionId,
         JSON.stringify(offer),
       );
     } catch (error) {
       console.error("Error starting call:", error);
       setCallStatus("idle");
-      alert("Không thể kết nối với người lắng nghe. Vui lòng thử lại.");
+      alert("Không thể bắt đầu cuộc gọi. Vui lòng thử lại.");
     }
   };
 
   const handleAcceptCall = async () => {
-    if (!peerConnection || !listenerConnectionId) return;
+    if (!signalRConnection || !peerConnection || !targetConnectionId) return;
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -249,21 +243,14 @@ const Profile = () => {
         .getTracks()
         .forEach((track) => peerConnection.addTrack(track, stream));
       setLocalStream(stream);
-      if (localAudioRef.current) {
-        localAudioRef.current.srcObject = stream;
-      }
+      if (localAudioRef.current) localAudioRef.current.srcObject = stream;
 
-      const answer = await peerConnection.createAnswer();
-      await peerConnection.setLocalDescription(answer);
-      signalRConnection.invoke(
-        "SendAnswer",
-        listenerConnectionId,
-        JSON.stringify(answer),
-      );
+      signalRConnection.invoke("AcceptCall", targetConnectionId);
       setCallStatus("in_call");
     } catch (error) {
       console.error("Error accepting call:", error);
       setCallStatus("idle");
+      alert("Không thể chấp nhận cuộc gọi.");
     }
   };
 
@@ -272,14 +259,14 @@ const Profile = () => {
       peerConnection.close();
       setPeerConnection(null);
     }
-    if (signalRConnection && listenerConnectionId) {
-      signalRConnection.invoke("EndCall", listenerConnectionId);
+    if (signalRConnection && targetConnectionId) {
+      signalRConnection.invoke("EndCall");
     }
     if (localStream) {
       localStream.getTracks().forEach((track) => track.stop());
     }
     setCallStatus("idle");
-    setListenerConnectionId(null);
+    setTargetConnectionId(null);
     setLocalStream(null);
     setRemoteStream(null);
   };
@@ -319,29 +306,24 @@ const Profile = () => {
     }
   };
 
-  if (loading) {
+  if (loading)
     return (
       <div className="flex min-h-screen items-center justify-center">
         <p className="text-gray-600">Đang tải...</p>
       </div>
     );
-  }
-
-  if (error) {
+  if (error)
     return (
       <div className="flex min-h-screen items-center justify-center">
         <p className="text-red-600">{error}</p>
       </div>
     );
-  }
-
-  if (!user) {
+  if (!user)
     return (
       <div className="flex min-h-screen items-center justify-center">
         <p className="text-gray-600">Không tìm thấy thông tin người dùng</p>
       </div>
     );
-  }
 
   return (
     <div className="min-h-screen w-full bg-gray-100 p-6">
@@ -365,7 +347,6 @@ const Profile = () => {
               <p className="text-sm text-gray-500">{user.role}</p>
             </div>
           </div>
-
           <div className="mb-6">
             <h2 className="mb-4 text-xl font-semibold text-gray-700">
               Thông tin cá nhân
@@ -390,7 +371,6 @@ const Profile = () => {
               </p>
             </div>
           </div>
-
           {user.userInfo && (
             <div className="mb-6">
               <h2 className="mb-4 text-xl font-semibold text-gray-700">
@@ -445,7 +425,7 @@ const Profile = () => {
             </div>
             <button
               onClick={handleDeposit}
-              className="mt-4 rounded-lg bg-blue-500 px-4 py-2 text-lg font-semibold text-white duration-300 hover:scale-110"
+              className="mt-4 rounded-lg bg-blue-500 px-4 py-2 text-lg font-semibold text-white hover:bg-blue-600"
             >
               Nạp Thêm
             </button>
@@ -645,6 +625,11 @@ const Profile = () => {
               {selectedBooking.status === "Upcoming" && (
                 <div className="space-y-3 pt-4">
                   {callStatus === "idle" && (
+                    <p className="text-center text-gray-500">
+                      Đang chờ kết nối với người lắng nghe...
+                    </p>
+                  )}
+                  {callStatus === "ready_to_call" && (
                     <button
                       onClick={handleStartCall}
                       className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-500 py-2 font-medium text-white hover:bg-green-600"
@@ -652,7 +637,6 @@ const Profile = () => {
                       <FaPhoneAlt /> Gọi {selectedBooking.listenerName}
                     </button>
                   )}
-
                   {callStatus === "incoming_call" && (
                     <div className="flex gap-3">
                       <button
@@ -669,15 +653,12 @@ const Profile = () => {
                       </button>
                     </div>
                   )}
-
-                  {(callStatus === "calling" ||
-                    callStatus === "connecting") && (
+                  {callStatus === "calling" && (
                     <div className="flex items-center justify-center gap-2 rounded-lg bg-yellow-500 py-2 font-medium text-white">
-                      <FaHourglassHalf /> Đang kết nối với{" "}
+                      <FaHourglassHalf /> Đang gọi{" "}
                       {selectedBooking.listenerName}...
                     </div>
                   )}
-
                   {callStatus === "in_call" && (
                     <button
                       onClick={handleEndCall}
@@ -686,17 +667,14 @@ const Profile = () => {
                       <FaPhoneSlash /> Kết thúc cuộc gọi
                     </button>
                   )}
-
-                  {callStatus !== "idle" && (
+                  {callStatus !== "idle" && callStatus !== "ready_to_call" && (
                     <div className="text-center text-sm text-gray-500">
                       Trạng thái:{" "}
                       {callStatus === "calling"
                         ? "Đang gọi..."
-                        : callStatus === "connecting"
-                          ? "Đang kết nối..."
-                          : callStatus === "in_call"
-                            ? "Đang trong cuộc gọi"
-                            : ""}
+                        : callStatus === "in_call"
+                          ? "Đang trong cuộc gọi"
+                          : "Đang xử lý..."}
                     </div>
                   )}
                 </div>

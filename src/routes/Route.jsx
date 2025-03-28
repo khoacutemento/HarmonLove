@@ -24,12 +24,15 @@ import Call from "../pages/Call";
 import CallWindow from "../pages/Call/CallWindow";
 import MyBlog from "../pages/MyBlog";
 import MyBlogDetail from "../pages/MyBlog/MyBlogDetail";
+import WorkShift from "../pages/WorkShift";
 
 const ROLES = {
-  CUSTOMER: "Customer",
-  LISTENER: "Listener",
-  ADMIN: "Admin",
+  CUSTOMER: "customer",
+  LISTENER: "listener",
+  ADMIN: "admin",
 };
+
+// Public routes accessible to everyone
 const publicRoutes = [
   { index: true, element: <Home /> },
   { path: "/home", element: <Home /> },
@@ -39,7 +42,8 @@ const publicRoutes = [
   { path: "/blogs/:id", element: <BlogDetail /> },
 ];
 
-const customerRoutes = [
+// Routes for both customers and listeners
+const sharedRoutes = [
   {
     path: "chats",
     element: <Chat />,
@@ -68,6 +72,13 @@ const customerRoutes = [
   { path: "failed", element: <PaymentFailed /> },
   { path: "profile", element: <Profile /> },
 ];
+
+// Routes specific to listeners
+const listenerOnlyRoutes = [{ path: "workshift", element: <WorkShift /> }];
+
+// Routes for admins (if needed in the future)
+const adminRoutes = [];
+
 export const router = createBrowserRouter([
   { path: "login", element: <Login /> },
   { path: "sign-up", element: <SignUp /> },
@@ -78,8 +89,18 @@ export const router = createBrowserRouter([
     children: [
       ...publicRoutes,
       {
-        element: <PrivateRoute allowedRoles={ROLES.CUSTOMER} />,
-        children: customerRoutes,
+        element: (
+          <PrivateRoute allowedRoles={[ROLES.CUSTOMER, ROLES.LISTENER]} />
+        ),
+        children: sharedRoutes,
+      },
+      {
+        element: <PrivateRoute allowedRoles={ROLES.LISTENER} />,
+        children: listenerOnlyRoutes,
+      },
+      {
+        element: <PrivateRoute allowedRoles={ROLES.ADMIN} />,
+        children: adminRoutes,
       },
     ],
   },
@@ -88,8 +109,18 @@ export const router = createBrowserRouter([
     element: <PersonalLayout />,
     children: [
       {
-        element: <PrivateRoute allowedRoles={ROLES.CUSTOMER} />,
-        children: customerRoutes,
+        element: (
+          <PrivateRoute allowedRoles={[ROLES.CUSTOMER, ROLES.LISTENER]} />
+        ),
+        children: sharedRoutes,
+      },
+      {
+        element: <PrivateRoute allowedRoles={ROLES.LISTENER} />,
+        children: listenerOnlyRoutes,
+      },
+      {
+        element: <PrivateRoute allowedRoles={ROLES.ADMIN} />,
+        children: adminRoutes,
       },
     ],
   },
