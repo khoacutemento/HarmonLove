@@ -39,8 +39,8 @@ export const register = async (userData) => {
       throw new Error("Đăng ký thất bại");
     }
   } catch (error) {
-    console.error("Lỗi khi đăng ký:", error.response?.data || error.message);
-    throw new Error("Đăng ký thất bại");
+    console.error("Lỗi khi đăng ký:", error.response?.data);
+    throw new Error(error.response?.data.message);
   }
 };
 

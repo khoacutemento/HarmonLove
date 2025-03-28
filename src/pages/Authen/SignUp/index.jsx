@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Google_Logo from "../../../assets/images/Google_Logo.png";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
 import { useDispatch } from "react-redux";
 import { login } from "../../../services/authService";
 import { loginSuccess } from "../../../app/slices/authSlice";
@@ -54,6 +54,7 @@ function SignUp() {
           </button>
         </div>
       </div>
+      <ToastContainer />
     </main>
   );
 }
