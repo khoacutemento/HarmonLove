@@ -20,11 +20,15 @@ import BlogDetail from "../pages/Blog/BlogDetail";
 import Profile from "../pages/Profile";
 import FriendsList from "../pages/Friends/FriendsList";
 import FriendsRequests from "../pages/Friends/FriendsRequests";
+import FriendsBlock from "../pages/Friends/FriendsBlock";
 import Call from "../pages/Call";
 import CallWindow from "../pages/Call/CallWindow";
 import MyBlog from "../pages/MyBlog";
 import MyBlogDetail from "../pages/MyBlog/MyBlogDetail";
 import WorkShift from "../pages/WorkShift";
+import FriendsAccept from "../pages/Friends/FriendsAccept";
+import FriendsDecline from "../pages/Friends/FriendsDecline";
+import FriendsProfile from "../pages/Friends/FriendsProfile";
 
 const ROLES = {
   CUSTOMER: "customer",
@@ -48,6 +52,7 @@ const sharedRoutes = [
     path: "chats",
     element: <Chat />,
   },
+  { path: "user/:id/:action", element: <FriendsProfile /> },
   {
     path: "friends",
     element: <Friends />,
@@ -59,6 +64,18 @@ const sharedRoutes = [
       {
         path: "requests",
         element: <FriendsRequests />,
+      },
+      {
+        path: "accepted",
+        element: <FriendsAccept />,
+      },
+      {
+        path: "blocks",
+        element: <FriendsBlock />,
+      },
+      {
+        path: "declined",
+        element: <FriendsDecline />,
       },
     ],
   },

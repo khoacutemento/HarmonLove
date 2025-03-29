@@ -45,9 +45,6 @@ function Item({ listener }) {
           </span>
         </div>
       </div>
-      <button className="rounded-lg bg-purple-500 px-6 py-2 font-medium text-white hover:bg-purple-400">
-        Chọn
-      </button>
     </div>
   );
 }
