@@ -70,7 +70,7 @@ const FriendsProfile = () => {
 
       if (response.data.status === "200") {
         alert("Friend request sent successfully!");
-        navigate(`/user/account/${id}/view`); // Redirect to the profile without action param
+        navigate(`/user/${id}/view`); // Redirect to the profile without action param
       } else {
         setActionError(
           response.data.message || "Failed to send friend request",
