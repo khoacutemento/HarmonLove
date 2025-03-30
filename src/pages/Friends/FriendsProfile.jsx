@@ -106,7 +106,7 @@ const FriendsProfile = () => {
 
       if (response.status === 200) {
         alert(`${status} action successful!`);
-        navigate(`/user/account/${id}/view`); // Redirect to the profile without action param
+        navigate(`/user/${id}/view`); // Redirect to the profile without action param
       } else {
         setActionError(`Failed to ${status.toLowerCase()} friend`);
       }
