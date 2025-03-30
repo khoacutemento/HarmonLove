@@ -82,19 +82,13 @@ const BookingModal = ({ booking, onClose, accountId }) => {
         }
       },
       onConnectedForBooking: (success) => {
-        console.log("ConnectedForBooking callback", { success });
-        setIsJoined(success);
-        if (success) {
-          setCallStatus("ready_to_call"); // Move to ready_to_call immediately
-        } else {
-          alert("Không thể tham gia cuộc gọi. Vui lòng thử lại.");
-          setCallStatus("idle");
-        }
+        console.log(
+          "This won’t trigger via SignalR event; handled in handleJoinCall",
+        );
       },
       onGetUserForBooking: (targetConnectionId) => {
         console.log("GetUserForBooking callback", { targetConnectionId });
         setTargetConnectionId(targetConnectionId);
-        // No need to change callStatus here since it's already "ready_to_call"
         console.log("Target connection ID received:", targetConnectionId);
         console.log(
           "Target user ID:",
@@ -104,10 +98,9 @@ const BookingModal = ({ booking, onClose, accountId }) => {
         );
       },
       onUserNotConnectedForBooking: () => {
-        console.log("UserNotConnectedForBooking callback");
-        alert("Người khác chưa tham gia cuộc gọi. Vui lòng chờ hoặc thử lại.");
-        setCallStatus("idle");
-        setIsJoined(false);
+        console.log(
+          "UserNotConnectedForBooking callback - not implemented in backend",
+        );
       },
       onNoAvailableUsers: () => {
         console.log("NoAvailableUsers callback");
@@ -181,24 +174,22 @@ const BookingModal = ({ booking, onClose, accountId }) => {
     try {
       console.log("Invoking OnConnectedForBookingAsync", { accountId });
       await signalRConnection.invoke("OnConnectedForBookingAsync", accountId);
-      console.log("OnConnectedForBookingAsync invoked");
+      console.log("OnConnectedForBookingAsync invoked successfully");
+      setIsJoined(true); // Assume success since backend doesn’t send a response
+      setCallStatus("ready_to_call");
 
-      let targetUserId;
-      if (role.toLowerCase() === "listener") {
-        targetUserId = booking.userId;
-        console.log("Joining as listener, target user ID:", targetUserId);
-      } else {
-        targetUserId = booking.listenerId;
-        console.log("Joining as user, target user ID:", targetUserId);
-      }
-
-      console.log("Invoking GetUserForBooking", { targetUserId });
-      const res = await signalRConnection.invoke(
-        "GetUserForBooking",
+      let targetUserId =
+        role.toLowerCase() === "listener" ? booking.userId : booking.listenerId;
+      console.log(
+        "Joining as",
+        role.toLowerCase(),
+        "target user ID:",
         targetUserId,
       );
-      setCallStatus("ready_to_call");
-      // callStatus is set to "ready_to_call" in onConnectedForBooking callback
+
+      console.log("Invoking GetUserForBooking", { targetUserId });
+      await signalRConnection.invoke("GetUserForBooking", targetUserId);
+      console.log("GetUserForBooking invoked");
     } catch (error) {
       console.error("Error joining call:", error);
       setCallStatus("idle");
@@ -223,7 +214,6 @@ const BookingModal = ({ booking, onClose, accountId }) => {
       setCallStatus("calling");
       let callTarget = targetConnectionId;
       if (!callTarget) {
-        // Fallback to target user ID if targetConnectionId isn't set yet
         callTarget =
           role.toLowerCase() === "listener"
             ? booking.userId
@@ -263,6 +253,7 @@ const BookingModal = ({ booking, onClose, accountId }) => {
     console.log("handleAcceptCall triggered", { targetConnectionId });
     if (!signalRConnection || !peerConnection || !targetConnectionId) {
       console.log("Not ready to accept call");
+      alert("Không thể chấp nhận cuộc gọi vì thiếu thông tin kết nối.");
       return;
     }
 
@@ -421,12 +412,22 @@ const BookingModal = ({ booking, onClose, accountId }) => {
                 </button>
               )}
               {callStatus === "ready_to_call" && (
-                <button
-                  onClick={handleStartCall}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-500 py-2 font-medium text-white hover:bg-green-600"
-                >
-                  <FaPhoneAlt /> Gọi {booking.listenerName}
-                </button>
+                <div>
+                  <button
+                    onClick={handleStartCall}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-500 py-2 font-medium text-white hover:bg-green-600"
+                  >
+                    <FaPhoneAlt /> Gọi{" "}
+                    {role.toLowerCase() !== "listener"
+                      ? "người lắng nghe"
+                      : "người đặt lịch hẹn"}
+                  </button>
+                  <p className="mt-2 text-center text-sm text-gray-500">
+                    {targetConnectionId
+                      ? "Người khác đã tham gia."
+                      : "Đang chờ người khác tham gia..."}
+                  </p>
+                </div>
               )}
               {callStatus === "incoming_call" && (
                 <div className="flex gap-3">

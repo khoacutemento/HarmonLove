@@ -1,4 +1,5 @@
 import * as signalR from "@microsoft/signalr";
+
 export const initSignalR = ({
   onRandomUserSelected,
   onNoAvailableUsers,
@@ -15,8 +16,9 @@ export const initSignalR = ({
 }) => {
   console.log("Setting up SignalR connection...");
   const connection = new signalR.HubConnectionBuilder()
-    .withUrl("https://harmon.love/callhub")
+    .withUrl("https://harmon.love/callhub") // Your provided URL
     .withAutomaticReconnect()
+    .configureLogging(signalR.LogLevel.Information) // Added logging for better debugging
     .build();
 
   connection
@@ -24,57 +26,61 @@ export const initSignalR = ({
     .then(() => console.log("SignalR connected successfully"))
     .catch((err) => console.error("SignalR connection failed:", err));
 
-  // Existing hub event handlers
+  // Event handlers aligned with backend SendAsync calls
   connection.on("RandomUserSelected", (targetConnectionId) => {
     console.log("Random user selected:", targetConnectionId);
-    onRandomUserSelected(targetConnectionId);
-  });
-  connection.on("NoAvailableUsers", () => {
-    console.log("No available users found");
-    onNoAvailableUsers();
-  });
-  connection.on("IncomingCall", (callerConnectionId) => {
-    console.log("Incoming call from:", callerConnectionId);
-    onIncomingCall(callerConnectionId);
-  });
-  connection.on("CallAccepted", (targetConnectionId) => {
-    console.log("Call accepted by:", targetConnectionId);
-    onCallAccepted(targetConnectionId);
-  });
-  connection.on("CallRejected", () => {
-    console.log("Call rejected");
-    onCallRejected();
-  });
-  connection.on("CallEnded", () => {
-    console.log("Call ended");
-    onCallEnded();
-  });
-  connection.on("ReceiveOffer", (callerConnectionId, offer) => {
-    console.log("Received offer from:", callerConnectionId, offer);
-    onReceiveOffer(callerConnectionId, offer);
-  });
-  connection.on("ReceiveAnswer", (callerConnectionId, answer) => {
-    console.log("Received answer from:", callerConnectionId, answer);
-    onReceiveAnswer(callerConnectionId, answer);
-  });
-  connection.on("ReceiveCandidate", (callerConnectionId, candidate) => {
-    console.log("Received candidate from:", callerConnectionId, candidate);
-    onReceiveCandidate(callerConnectionId, candidate);
+    if (onRandomUserSelected) onRandomUserSelected(targetConnectionId);
   });
 
-  // New booking-related handlers
-  connection.on("ConnectedForBooking", (success) => {
-    console.log("Connected for booking:", success);
-    onConnectedForBooking(success);
+  connection.on("NoAvailableUsers", () => {
+    console.log("No available users found");
+    if (onNoAvailableUsers) onNoAvailableUsers();
   });
-  connection.on("GetUserForBooking", (targetConnectionId) => {
+
+  connection.on("IncomingCall", (callerConnectionId) => {
+    console.log("Incoming call from:", callerConnectionId);
+    if (onIncomingCall) onIncomingCall(callerConnectionId);
+  });
+
+  connection.on("CallAccepted", (targetConnectionId) => {
+    console.log("Call accepted by:", targetConnectionId);
+    if (onCallAccepted) onCallAccepted(targetConnectionId);
+  });
+
+  connection.on("CallRejected", () => {
+    console.log("Call rejected");
+    if (onCallRejected) onCallRejected();
+  });
+
+  connection.on("CallEnded", () => {
+    console.log("Call ended");
+    if (onCallEnded) onCallEnded();
+  });
+
+  connection.on("ReceiveOffer", (callerConnectionId, offer) => {
+    console.log("Received offer from:", callerConnectionId, offer);
+    if (onReceiveOffer) onReceiveOffer(callerConnectionId, offer);
+  });
+
+  connection.on("ReceiveAnswer", (callerConnectionId, answer) => {
+    console.log("Received answer from:", callerConnectionId, answer);
+    if (onReceiveAnswer) onReceiveAnswer(callerConnectionId, answer);
+  });
+
+  connection.on("ReceiveCandidate", (callerConnectionId, candidate) => {
+    console.log("Received candidate from:", callerConnectionId, candidate);
+    if (onReceiveCandidate) onReceiveCandidate(callerConnectionId, candidate);
+  });
+
+  // Booking-related handlers adjusted to backend
+  connection.on("UserSelected", (targetConnectionId) => {
     console.log("Got user for booking:", targetConnectionId);
-    onGetUserForBooking(targetConnectionId);
+    if (onGetUserForBooking) onGetUserForBooking(targetConnectionId);
   });
-  connection.on("UserNotConnectedForBooking", () => {
-    console.log("Other user not connected for booking");
-    onUserNotConnectedForBooking();
-  });
+
+  // Note: Backend doesn’t send "ConnectedForBooking" or "UserNotConnectedForBooking"
+  // Simulate onConnectedForBooking via promise resolution in frontend
+  // Add UserNotConnectedForBooking logic if backend is updated
 
   connection.onclose((err) => console.log("SignalR connection closed:", err));
 

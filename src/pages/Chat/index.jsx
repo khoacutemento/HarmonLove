@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import * as signalR from "@microsoft/signalr";
+import { useParams } from "react-router-dom";
 
 const Chat = () => {
-  const storedUserToken = localStorage.getItem("token");
-  const storedUsername = localStorage.getItem("username");
-
+  const { id } = useParams(); // Get both user id and action from route params
+  const storedUserToken = localStorage.getItem("token"); // Chỉ dùng token từ localStorage
   const [connection, setConnection] = useState(null);
-  const [username, setUsername] = useState(storedUsername || "");
+  const [username, setUsername] = useState(""); // Không lấy từ localStorage
   const [receiver, setReceiver] = useState("");
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
@@ -15,23 +15,7 @@ const Chat = () => {
   const [isConnected, setIsConnected] = useState(false);
   const messagesEndRef = useRef(null);
 
-  useEffect(() => {
-    if (!storedUserToken || !username) return;
-
-    const newConnection = new signalR.HubConnectionBuilder()
-      .withUrl("https://localhost:7183/chathub", {
-        accessTokenFactory: () => {
-          console.log("🔑 Sending Token:", storedUserToken); // Debug token
-          return storedUserToken || "";
-        },
-      })
-      .withAutomaticReconnect()
-      .configureLogging(signalR.LogLevel.Information)
-      .build();
-
-    setConnection(newConnection);
-  }, [storedUserToken, username]);
-
+  // Khi có kết nối, start và đăng ký các sự kiện
   useEffect(() => {
     if (!connection) return;
 
@@ -56,39 +40,44 @@ const Chat = () => {
       .catch((err) => console.error("❌ Connection failed: ", err));
 
     return () => {
-      connection.stop();
+      connection.stop().then(() => console.log("SignalR connection stopped"));
     };
   }, [connection]);
 
+  // Cuộn xuống cuối danh sách tin nhắn
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Hàm kết nối (không lưu username vào localStorage)
   const handleConnect = () => {
     if (!username.trim()) {
       alert("Please enter a username");
       return;
     }
-
-    localStorage.setItem("username", username);
-    console.log("username: ", username);
-
-    if (!connection) {
-      const newConnection = new signalR.HubConnectionBuilder()
-        .withUrl(
-          `https://localhost:7183/chathub?username=${encodeURIComponent(username)}`,
-          {
-            accessTokenFactory: () => storedUserToken,
-          },
-        )
-        .withAutomaticReconnect()
-        .configureLogging(signalR.LogLevel.Information)
-        .build();
-
-      setConnection(newConnection);
+    if (!storedUserToken) {
+      alert("No authentication token found. Please log in.");
+      return;
     }
+
+    console.log("Username entered: ", username);
+
+    // Tạo kết nối SignalR chỉ khi nhấn Connect
+    const newConnection = new signalR.HubConnectionBuilder()
+      .withUrl(`https://harmon.love/chathub?username=${username}`, {
+        accessTokenFactory: () => {
+          console.log("🔑 Sending Token:", storedUserToken);
+          return storedUserToken;
+        },
+      })
+      .withAutomaticReconnect()
+      .configureLogging(signalR.LogLevel.Information)
+      .build();
+
+    setConnection(newConnection);
   };
 
+  // Hàm chọn người nhận tin nhắn
   const selectReceiver = async (user) => {
     setReceiver(user);
     if (!connection || !username) return;
@@ -101,23 +90,29 @@ const Chat = () => {
     }
   };
 
+  // Hàm gửi tin nhắn
   const sendMessage = async () => {
     if (!connection || !message || !receiver || !directChatId) return;
 
-    await connection.invoke(
-      "SendMessage",
-      directChatId,
-      username,
-      receiver,
-      message,
-    );
-    setMessages((prev) => [...prev, { sender: username, content: message }]);
-    setMessage("");
+    try {
+      await connection.invoke(
+        "SendMessage",
+        directChatId,
+        username,
+        receiver,
+        message,
+      );
+      setMessages((prev) => [...prev, { sender: username, content: message }]);
+      setMessage("");
+    } catch (error) {
+      console.error("❌ Error sending message:", error);
+    }
   };
 
   return (
     <div className="mx-auto flex h-screen max-w-4xl flex-col bg-gray-100 p-4">
       {!isConnected ? (
+        // Nếu chưa kết nối, hiển thị ô nhập username và nút Connect
         <div className="flex h-full flex-col items-center justify-center">
           <input
             type="text"
