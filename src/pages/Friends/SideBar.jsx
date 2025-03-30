@@ -19,6 +19,24 @@ function SideBar() {
       link: "friends/requests",
       icon: <FaUserFriends />,
     },
+    {
+      key: 4,
+      label: "Danh sách bạn bè đã từ chối",
+      link: "friends/declined",
+      icon: <FaUserFriends />,
+    },
+    {
+      key: 3,
+      label: "Đã chấp nhận kết bạn",
+      link: "friends/accepted",
+      icon: <FaUserFriends />,
+    },
+    {
+      key: 5,
+      label: "Danh sách bạn bè đã chặn",
+      link: "friends/blocks",
+      icon: <FaUserFriends />,
+    },
   ];
 
   const handleNavigation = (link) => {
