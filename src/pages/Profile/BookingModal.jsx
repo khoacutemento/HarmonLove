@@ -5,49 +5,51 @@ import {
   FaPhoneSlash,
   FaHourglassHalf,
 } from "react-icons/fa";
-import { initSignalR } from "../../utils/signalR";
+import { initSignalR } from "../../utils/signalRBooking";
 import { initWebRTC } from "../../utils/webRTC";
 
 const BookingModal = ({ booking, onClose, accountId }) => {
   const storedUser = localStorage.getItem("user");
-  const { role } = storedUser ? JSON.parse(storedUser) : {};
-  const [signalRConnection, setSignalRConnection] = useState(null);
+  const { role } = storedUser ? JSON.parse(storedUser) : { role: null };
+  const [signalRClient, setSignalRClient] = useState(null);
   const [peerConnection, setPeerConnection] = useState(null);
   const [callStatus, setCallStatus] = useState("idle");
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
   const [targetConnectionId, setTargetConnectionId] = useState(null);
   const [isJoined, setIsJoined] = useState(false);
+  const [isSignalRConnected, setIsSignalRConnected] = useState(false); // New state for connection status
   const localAudioRef = useRef(null);
   const remoteAudioRef = useRef(null);
 
   useEffect(() => {
-    console.log("Initializing SignalR...");
+    console.log("BookingModal useEffect: Initializing SignalR and WebRTC...", {
+      booking,
+      accountId,
+    });
 
-    const connection = initSignalR({
+    const client = initSignalR({
       onIncomingCall: (callerConnectionId) => {
-        console.log("Received IncomingCall", { callerConnectionId });
+        console.log("Handler: onIncomingCall", { callerConnectionId });
         setCallStatus("incoming_call");
         setTargetConnectionId(callerConnectionId);
-        console.log("Caller user ID from incoming call:", accountId);
       },
       onCallAccepted: (targetId) => {
-        console.log("Received CallAccepted", { targetId });
+        console.log("Handler: onCallAccepted", { targetId });
         setCallStatus("in_call");
         setTargetConnectionId(targetId);
-        console.log("Target user ID from call accepted:", booking.listenerId);
       },
       onCallRejected: () => {
-        console.log("Received CallRejected");
+        console.log("Handler: onCallRejected");
         setCallStatus("idle");
         alert("Cuộc gọi đã bị từ chối bởi người lắng nghe");
       },
       onCallEnded: () => {
-        console.log("Received CallEnded");
+        console.log("Handler: onCallEnded");
         handleEndCall();
       },
       onReceiveOffer: async (callerId, offer) => {
-        console.log("Received Offer", { callerId, offer });
+        console.log("Handler: onReceiveOffer", { callerId, offer });
         try {
           const parsedOffer = JSON.parse(offer);
           await peerConnection.setRemoteDescription(
@@ -55,143 +57,165 @@ const BookingModal = ({ booking, onClose, accountId }) => {
           );
           const answer = await peerConnection.createAnswer();
           await peerConnection.setLocalDescription(answer);
-          console.log("Sending Answer", { callerId, answer });
-          connection.invoke("SendAnswer", callerId, JSON.stringify(answer));
+          console.log("Sending answer after receiving offer", {
+            callerId,
+            answer,
+          });
+          client.sendAnswer(callerId, JSON.stringify(answer));
         } catch (error) {
-          console.error("Error handling offer:", error);
+          console.error("Error in onReceiveOffer:", error);
         }
       },
       onReceiveAnswer: async (callerId, answer) => {
-        console.log("Received Answer", { callerId, answer });
+        console.log("Handler: onReceiveAnswer", { callerId, answer });
         try {
           await peerConnection.setRemoteDescription(
             new RTCSessionDescription(JSON.parse(answer)),
           );
         } catch (error) {
-          console.error("Error handling answer:", error);
+          console.error("Error in onReceiveAnswer:", error);
         }
       },
       onReceiveCandidate: async (callerId, candidate) => {
-        console.log("Received Candidate", { callerId, candidate });
+        console.log("Handler: onReceiveCandidate", { callerId, candidate });
         try {
           await peerConnection.addIceCandidate(
             new RTCIceCandidate(JSON.parse(candidate)),
           );
         } catch (error) {
-          console.error("Error handling candidate:", error);
+          console.error("Error in onReceiveCandidate:", error);
         }
       },
-      onConnectedForBooking: (success) => {
-        console.log(
-          "This won’t trigger via SignalR event; handled in handleJoinCall",
-        );
-      },
       onGetUserForBooking: (targetConnectionId) => {
-        console.log("GetUserForBooking callback", { targetConnectionId });
+        console.log("Handler: onGetUserForBooking (UserSelected)", {
+          targetConnectionId,
+        });
         setTargetConnectionId(targetConnectionId);
-        console.log("Target connection ID received:", targetConnectionId);
-        console.log(
-          "Target user ID:",
-          role.toLowerCase() === "listener"
-            ? booking.userId
-            : booking.listenerId,
-        );
-      },
-      onUserNotConnectedForBooking: () => {
-        console.log(
-          "UserNotConnectedForBooking callback - not implemented in backend",
-        );
+        setCallStatus("ready_to_call");
       },
       onNoAvailableUsers: () => {
-        console.log("NoAvailableUsers callback");
+        console.log("Handler: onNoAvailableUsers");
         alert("Không có người dùng nào sẵn sàng. Vui lòng thử lại sau.");
         setCallStatus("idle");
         setIsJoined(false);
       },
     });
 
-    setSignalRConnection(connection);
+    console.log("SignalR client initialized:", client);
+    setSignalRClient(client);
 
-    console.log("Initializing WebRTC...");
+    // Start SignalR connection and update state
+    client.connection
+      .start()
+      .then(() => {
+        console.log("SignalR connection started successfully");
+        setIsSignalRConnected(true);
+      })
+      .catch((err) =>
+        console.error("SignalR connection failed to start:", err),
+      );
+
     const pc = initWebRTC({
       onIceCandidate: (candidate) => {
-        console.log("WebRTC onIceCandidate", { candidate });
-        if (targetConnectionId && connection) {
-          connection.invoke(
-            "SendCandidate",
-            targetConnectionId,
-            JSON.stringify(candidate),
-          );
+        console.log("WebRTC: onIceCandidate", { candidate });
+        if (targetConnectionId) {
+          client.sendCandidate(targetConnectionId, JSON.stringify(candidate));
         }
       },
       onTrack: (event) => {
-        console.log("WebRTC onTrack", { streams: event.streams });
+        console.log("WebRTC: onTrack", { streams: event.streams });
         if (remoteAudioRef.current) {
           remoteAudioRef.current.srcObject = event.streams[0];
           setRemoteStream(event.streams[0]);
         }
       },
     });
-    console.log("Initializing RTCPeerConnection...");
+    console.log("WebRTC peer connection initialized:", pc);
     setPeerConnection(pc);
-    console.log("WebRTC initialized with pc:", pc);
 
     return () => {
-      console.log("Cleaning up BookingModal");
-      if (signalRConnection) {
-        console.log("Stopping SignalR connection on cleanup");
-        signalRConnection
-          .stop()
-          .then(() => console.log("SignalR connection stopped during cleanup"))
-          .catch((err) =>
-            console.error("Error stopping SignalR on cleanup:", err),
-          );
+      console.log("BookingModal cleanup triggered");
+      if (signalRClient) {
+        const myConnectionId = signalRClient.connection.connectionId;
+        const targetAccountId =
+          role.toLowerCase() === "listener"
+            ? booking.userId
+            : booking.listenerId;
+        cleanupCall(myConnectionId, accountId, targetAccountId);
       }
-      if (peerConnection) {
-        console.log("Closing WebRTC peer connection");
-        peerConnection.close();
-        setPeerConnection(null);
-      }
-      if (localStream) {
-        console.log("Stopping local stream tracks");
-        localStream.getTracks().forEach((track) => track.stop());
-      }
-      setSignalRConnection(null);
-      setLocalStream(null);
-      setRemoteStream(null);
-      console.log("Cleanup completed");
     };
   }, [booking, accountId]);
 
+  const cleanupCall = (myConnectionId, myAccountId, targetAccountId) => {
+    console.log("cleanupCall started", {
+      myConnectionId,
+      myAccountId,
+      targetAccountId,
+    });
+    if (peerConnection) {
+      console.log("Closing WebRTC peer connection");
+      peerConnection.close();
+      setPeerConnection(null);
+    }
+    if (signalRClient && targetConnectionId && myAccountId && targetAccountId) {
+      console.log("Ending call via SignalR", {
+        myConnectionId,
+        targetConnectionId,
+      });
+      signalRClient.endCall(myAccountId, targetAccountId, myConnectionId);
+    }
+    if (localStream) {
+      console.log("Stopping local stream tracks");
+      localStream.getTracks().forEach((track) => track.stop());
+      setLocalStream(null);
+    }
+    if (remoteStream) {
+      console.log("Clearing remote stream");
+      setRemoteStream(null);
+    }
+    if (signalRClient) {
+      console.log("Stopping SignalR connection");
+      signalRClient.connection
+        .stop()
+        .then(() => console.log("SignalR connection stopped successfully"))
+        .catch((err) => console.error("Error stopping SignalR:", err));
+    }
+    setSignalRClient(null);
+    setTargetConnectionId(null);
+    setCallStatus("idle");
+    setIsJoined(false);
+    setIsSignalRConnected(false);
+    console.log("cleanupCall completed");
+  };
+
   const handleJoinCall = async () => {
     console.log("handleJoinCall triggered");
-    if (!signalRConnection) {
-      console.log("SignalR connection not initialized");
+    if (!signalRClient) {
+      console.log("SignalR client not initialized");
       alert("Chưa sẵn sàng để tham gia. Vui lòng đợi hoặc thử lại.");
+      return;
+    }
+    if (!isSignalRConnected) {
+      console.log("SignalR not connected yet");
+      alert("Đang kết nối tới server. Vui lòng đợi một chút.");
       return;
     }
 
     try {
-      console.log("Invoking OnConnectedForBookingAsync", { accountId });
-      await signalRConnection.invoke("OnConnectedForBookingAsync", accountId);
-      console.log("OnConnectedForBookingAsync invoked successfully");
-      setIsJoined(true); // Assume success since backend doesn’t send a response
-      setCallStatus("ready_to_call");
-
-      let targetUserId =
+      setIsJoined(true);
+      setCallStatus("joining");
+      const targetUserId =
         role.toLowerCase() === "listener" ? booking.userId : booking.listenerId;
       console.log(
-        "Joining as",
+        "Joining call as",
         role.toLowerCase(),
-        "target user ID:",
+        "with targetUserId:",
         targetUserId,
       );
-
-      console.log("Invoking GetUserForBooking", { targetUserId });
-      await signalRConnection.invoke("GetUserForBooking", targetUserId);
-      console.log("GetUserForBooking invoked");
+      await signalRClient.getUserForBooking(targetUserId);
+      console.log("GetUserForBooking invoked successfully");
     } catch (error) {
-      console.error("Error joining call:", error);
+      console.error("Error in handleJoinCall:", error);
       setCallStatus("idle");
       setIsJoined(false);
       alert("Không thể tham gia cuộc gọi. Vui lòng thử lại.");
@@ -199,51 +223,36 @@ const BookingModal = ({ booking, onClose, accountId }) => {
   };
 
   const handleStartCall = async () => {
-    console.log("handleStartCall triggered", {
-      signalRConnection,
-      peerConnection,
-      targetConnectionId,
-    });
-    if (!signalRConnection || !peerConnection) {
-      console.log("Not ready to start call: Missing SignalR or WebRTC");
+    console.log("handleStartCall triggered", { targetConnectionId });
+    if (!signalRClient || !peerConnection || !targetConnectionId) {
+      console.log("Not ready to start call", {
+        signalRClient,
+        peerConnection,
+        targetConnectionId,
+      });
       alert("Chưa sẵn sàng để bắt đầu cuộc gọi. Vui lòng thử lại.");
       return;
     }
 
     try {
       setCallStatus("calling");
-      let callTarget = targetConnectionId;
-      if (!callTarget) {
-        callTarget =
-          role.toLowerCase() === "listener"
-            ? booking.userId
-            : booking.listenerId;
-        console.log("No targetConnectionId yet, using fallback:", callTarget);
-      }
-      console.log("Invoking StartCall", { callTarget });
-      await signalRConnection.invoke("StartCall", callTarget);
+      await signalRClient.startCall(targetConnectionId);
 
-      console.log("Requesting user media");
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log("Got local stream", { stream });
       stream.getTracks().forEach((track) => {
         console.log("Adding track to peer connection", { track });
         peerConnection.addTrack(track, stream);
       });
       setLocalStream(stream);
       if (localAudioRef.current) localAudioRef.current.srcObject = stream;
-      console.log("Local stream set");
 
-      console.log("Creating offer");
       const offer = await peerConnection.createOffer();
       await peerConnection.setLocalDescription(offer);
-      console.log("Sending offer", { callTarget, offer });
-      await signalRConnection.invoke(
-        "SendOffer",
-        callTarget,
-        JSON.stringify(offer),
-      );
+      console.log("Sending offer", { offer });
+      await signalRClient.sendOffer(targetConnectionId, JSON.stringify(offer));
     } catch (error) {
-      console.error("Error starting call:", error);
+      console.error("Error in handleStartCall:", error);
       setCallStatus("idle");
       alert("Không thể bắt đầu cuộc gọi. Vui lòng thử lại.");
     }
@@ -251,76 +260,93 @@ const BookingModal = ({ booking, onClose, accountId }) => {
 
   const handleAcceptCall = async () => {
     console.log("handleAcceptCall triggered", { targetConnectionId });
-    if (!signalRConnection || !peerConnection || !targetConnectionId) {
-      console.log("Not ready to accept call");
+    if (!signalRClient || !peerConnection || !targetConnectionId) {
+      console.log("Not ready to accept call", {
+        signalRClient,
+        peerConnection,
+        targetConnectionId,
+      });
       alert("Không thể chấp nhận cuộc gọi vì thiếu thông tin kết nối.");
       return;
     }
 
     try {
-      console.log(
-        "Target user ID from call acceptance:",
-        role.toLowerCase() === "listener" ? booking.userId : booking.listenerId,
-      );
-      console.log("Requesting user media for accept");
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log("Got local stream for accept", { stream });
       stream.getTracks().forEach((track) => {
         console.log("Adding track to peer connection", { track });
         peerConnection.addTrack(track, stream);
       });
       setLocalStream(stream);
       if (localAudioRef.current) localAudioRef.current.srcObject = stream;
-      console.log("Local stream set for accept");
 
-      console.log("Invoking AcceptCall", { targetConnectionId });
-      await signalRConnection.invoke("AcceptCall", targetConnectionId);
+      const myAccountId = accountId;
+      const targetAccountId =
+        role.toLowerCase() === "listener" ? booking.userId : booking.listenerId;
+      console.log("Accepting call", {
+        myAccountId,
+        targetAccountId,
+        targetConnectionId,
+      });
+      await signalRClient.acceptCall(
+        myAccountId,
+        targetAccountId,
+        targetConnectionId,
+      );
       setCallStatus("in_call");
     } catch (error) {
-      console.error("Error accepting call:", error);
+      console.error("Error in handleAcceptCall:", error);
       setCallStatus("idle");
       alert("Không thể chấp nhận cuộc gọi.");
     }
   };
 
-  const handleEndCall = async () => {
-    console.log("handleEndCall triggered");
-    if (peerConnection) {
-      console.log("Closing peer connection");
-      peerConnection.close();
-      setPeerConnection(null);
-    }
-    if (signalRConnection && targetConnectionId) {
-      console.log("Invoking EndCall", {
-        callerConnectionId: signalRConnection.connectionId,
+  const handleRejectCall = async () => {
+    console.log("handleRejectCall triggered", { targetConnectionId });
+    if (!signalRClient || !targetConnectionId) {
+      console.log("Not ready to reject call", {
+        signalRClient,
         targetConnectionId,
       });
-      console.log("Caller user ID ending call:", accountId);
-      await signalRConnection.invoke(
-        "EndCall",
-        signalRConnection.connectionId,
+      alert("Không thể từ chối cuộc gọi vì thiếu thông tin kết nối.");
+      return;
+    }
+
+    try {
+      const myAccountId = accountId;
+      const targetAccountId =
+        role.toLowerCase() === "listener" ? booking.userId : booking.listenerId;
+      console.log("Rejecting call", {
+        targetAccountId,
+        myAccountId,
+        targetConnectionId,
+      });
+      await signalRClient.rejectCall(
+        targetAccountId,
+        myAccountId,
         targetConnectionId,
       );
+      setCallStatus("idle");
+    } catch (error) {
+      console.error("Error in handleRejectCall:", error);
+      alert("Không thể từ chối cuộc gọi.");
     }
-    if (localStream) {
-      console.log("Stopping local stream tracks");
-      localStream.getTracks().forEach((track) => track.stop());
+  };
+
+  const handleEndCall = async () => {
+    console.log("handleEndCall triggered", { targetConnectionId });
+    if (signalRClient && targetConnectionId) {
+      const myConnectionId = signalRClient.connection.connectionId;
+      const myAccountId = accountId;
+      const targetAccountId =
+        role.toLowerCase() === "listener" ? booking.userId : booking.listenerId;
+      console.log("Ending call", {
+        myConnectionId,
+        myAccountId,
+        targetAccountId,
+      });
+      await cleanupCall(myConnectionId, myAccountId, targetAccountId);
     }
-    if (signalRConnection) {
-      console.log("Stopping SignalR connection on end call");
-      await signalRConnection
-        .stop()
-        .then(() => console.log("SignalR connection stopped on end call"))
-        .catch((err) =>
-          console.error("Error stopping SignalR on end call:", err),
-        );
-    }
-    setCallStatus("idle");
-    setTargetConnectionId(null);
-    setLocalStream(null);
-    setRemoteStream(null);
-    setIsJoined(false);
-    setSignalRConnection(null);
-    console.log("Call ended");
   };
 
   const getStatusBadge = (status) => {
@@ -357,6 +383,7 @@ const BookingModal = ({ booking, onClose, accountId }) => {
     callStatus,
     targetConnectionId,
     isJoined,
+    isSignalRConnected,
   });
 
   return (
@@ -407,6 +434,7 @@ const BookingModal = ({ booking, onClose, accountId }) => {
                 <button
                   onClick={handleJoinCall}
                   className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-500 py-2 font-medium text-white hover:bg-blue-600"
+                  disabled={!isSignalRConnected} // Disable until connected
                 >
                   <FaPhoneAlt /> Tham gia cuộc gọi
                 </button>
@@ -416,6 +444,7 @@ const BookingModal = ({ booking, onClose, accountId }) => {
                   <button
                     onClick={handleStartCall}
                     className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-500 py-2 font-medium text-white hover:bg-green-600"
+                    disabled={!targetConnectionId}
                   >
                     <FaPhoneAlt /> Gọi{" "}
                     {role.toLowerCase() !== "listener"
@@ -438,7 +467,7 @@ const BookingModal = ({ booking, onClose, accountId }) => {
                     Chấp nhận
                   </button>
                   <button
-                    onClick={handleEndCall}
+                    onClick={handleRejectCall}
                     className="flex-1 rounded-lg bg-red-500 py-2 font-medium text-white hover:bg-red-600"
                   >
                     Từ chối
@@ -465,7 +494,7 @@ const BookingModal = ({ booking, onClose, accountId }) => {
                     ? "Đang gọi..."
                     : callStatus === "in_call"
                       ? "Đang trong cuộc gọi"
-                      : "Đang xử lý..."}
+                      : "Đang tham gia..."}
                 </div>
               )}
             </div>

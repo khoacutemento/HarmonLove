@@ -11,6 +11,7 @@ const VerifyOTP = () => {
   const navigate = useNavigate();
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false); // New state for resend button
 
   const handleChange = (index, value) => {
     if (value.length > 1) return;
@@ -70,7 +71,6 @@ const VerifyOTP = () => {
     }
   };
 
-  // New function to call the user-presence API
   const updateUserPresence = async (userId) => {
     try {
       const presenceResponse = await axiosInstance.post(
@@ -94,6 +94,7 @@ const VerifyOTP = () => {
   };
 
   const handleResendOtp = async () => {
+    setResendLoading(true); // Set loading state for resend
     try {
       const email = localStorage.getItem("email");
       const response = await resendOtp(JSON.stringify(email));
@@ -106,6 +107,8 @@ const VerifyOTP = () => {
     } catch (error) {
       toast.error("Không thể gửi lại mã OTP");
       console.log(error);
+    } finally {
+      setResendLoading(false); // Reset loading state
     }
   };
 
@@ -139,6 +142,7 @@ const VerifyOTP = () => {
                 onChange={(e) => handleChange(index, e.target.value)}
                 maxLength="1"
                 className="size-10 rounded-lg border border-purple-500 text-center text-lg focus:outline-none focus:ring focus:ring-purple-400 lg:size-12"
+                disabled={loading || resendLoading} // Disable inputs during any loading
               />
             ))}
           </div>
@@ -146,7 +150,7 @@ const VerifyOTP = () => {
           <button
             type="submit"
             className="mt-4 w-1/2 rounded bg-purple-500 px-4 py-2 font-semibold text-white hover:bg-purple-600 disabled:bg-gray-400"
-            disabled={loading}
+            disabled={loading || resendLoading} // Disable when either action is loading
           >
             {loading ? "Đang xác thực..." : "Xác nhận"}
           </button>
@@ -155,10 +159,12 @@ const VerifyOTP = () => {
         <div className="mt-4 flex flex-col items-center justify-center text-purple-800">
           <span className="text-sm">Bạn vẫn chưa nhận được mã OTP?</span>
           <span
-            className="cursor-pointer font-bold text-purple-900 hover:underline"
-            onClick={handleResendOtp}
+            className={`cursor-pointer font-bold text-purple-900 hover:underline ${
+              resendLoading || loading ? "pointer-events-none opacity-50" : ""
+            }`}
+            onClick={!resendLoading && !loading ? handleResendOtp : null} // Prevent click when loading
           >
-            Bấm vào đây để gửi lại
+            {resendLoading ? "Đang gửi..." : "Bấm vào đây để gửi lại"}
           </span>
         </div>
       </div>

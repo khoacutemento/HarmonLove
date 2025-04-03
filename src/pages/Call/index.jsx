@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { initSignalR } from "../../utils/signalR";
+import { initSignalR } from "../../utils/signalR"; // Updated version with token
 import { initWebRTC, startCall } from "../../utils/webRTC";
 import axiosInstance from "../../config/axios";
 import { toast } from "react-toastify";
@@ -13,10 +13,12 @@ const CALL_DURATION_MS = CALL_DURATION_SECONDS * 1000; // Convert to millisecond
 const Call = () => {
   const navigate = useNavigate();
   const storedUser = localStorage.getItem("user");
-  const { accountId } = storedUser ? JSON.parse(storedUser) : null;
+  const { accountId } = storedUser
+    ? JSON.parse(storedUser)
+    : { accountId: null };
   const [user, setUser] = useState(null);
   const [callStatus, setCallStatus] = useState("Waiting for a match...");
-  const [connection, setConnection] = useState(null);
+  const [signalRClient, setSignalRClient] = useState(null); // Updated to store the full client object
   const [targetConnectionId, setTargetConnectionId] = useState(null);
   const [incomingCallerId, setIncomingCallerId] = useState(null);
   const [micMuted, setMicMuted] = useState(false);
@@ -26,7 +28,7 @@ const Call = () => {
   const [selectedInput, setSelectedInput] = useState("");
   const [selectedOutput, setSelectedOutput] = useState("");
   const [callTimer, setCallTimer] = useState(null);
-  const [remainingTime, setRemainingTime] = useState(CALL_DURATION_SECONDS); // Use global variable
+  const [remainingTime, setRemainingTime] = useState(CALL_DURATION_SECONDS);
   const [countdownInterval, setCountdownInterval] = useState(null);
   const [showOneMinuteWarning, setShowOneMinuteWarning] = useState(false);
 
@@ -48,18 +50,16 @@ const Call = () => {
       }
     };
 
-    fetchData();
+    if (accountId) fetchData();
   }, [accountId]);
 
   useEffect(() => {
     console.log("Initializing SignalR...");
-    const signalRConn = initSignalR({
+    const client = initSignalR({
       onRandomUserSelected: (targetId) => {
         setTargetConnectionId(targetId);
         setCallStatus("User found, starting call...");
-        signalRConn
-          .invoke("StartCall", targetId)
-          .catch((err) => console.error("StartCall invocation failed:", err));
+        client.startCall(targetId); // Use helper method
       },
       onNoAvailableUsers: () => {
         setCallStatus("No available users");
@@ -73,7 +73,7 @@ const Call = () => {
         setCallStatus("Call connected!");
         console.log("Starting call with local pc:", pc);
         if (pc) {
-          startCall(pc, signalRConn, acceptedTargetId).then((stream) => {
+          startCall(pc, client.connection, acceptedTargetId).then((stream) => {
             setAudioStream(stream);
           });
         } else {
@@ -98,11 +98,7 @@ const Call = () => {
           );
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
-          signalRConn
-            .invoke("SendAnswer", callerId, JSON.stringify(answer))
-            .catch((err) =>
-              console.error("SendAnswer invocation failed:", err),
-            );
+          client.sendAnswer(callerId, JSON.stringify(answer)); // Use helper method
         } catch (error) {
           console.error("Error handling offer:", error);
         }
@@ -126,21 +122,13 @@ const Call = () => {
         }
       },
     });
-    setConnection(signalRConn);
+    setSignalRClient(client);
 
     console.log("Initializing WebRTC...");
     pc = initWebRTC({
       onIceCandidate: (candidate) => {
         if (targetConnectionId) {
-          signalRConn
-            .invoke(
-              "SendCandidate",
-              targetConnectionId,
-              JSON.stringify(candidate),
-            )
-            .catch((err) =>
-              console.error("SendCandidate invocation failed:", err),
-            );
+          client.sendCandidate(targetConnectionId, JSON.stringify(candidate)); // Use helper method
         }
       },
       onTrack: (event) => {
@@ -165,7 +153,7 @@ const Call = () => {
 
     return () => {
       console.log("Cleaning up...");
-      signalRConn.stop();
+      client.connection.stop();
       cleanupCall();
       if (callTimer) clearTimeout(callTimer);
       if (countdownInterval) clearInterval(countdownInterval);
@@ -181,20 +169,16 @@ const Call = () => {
       console.log(
         `Starting ${CALL_DURATION_MINUTES}-minute timer for normal user...`,
       );
-      setRemainingTime(CALL_DURATION_SECONDS); // Use global variable
+      setRemainingTime(CALL_DURATION_SECONDS);
       setShowOneMinuteWarning(false);
 
-      // Start countdown timer
       const interval = setInterval(() => {
         setRemainingTime((prev) => {
           const newTime = prev - 1;
           if (newTime === 60 && !showOneMinuteWarning) {
             toast.warn(
               "You have 1 minute left in your call. Upgrade to premium for unlimited time!",
-              {
-                position: "top-center",
-                autoClose: 5000,
-              },
+              { position: "top-center", autoClose: 5000 },
             );
             setShowOneMinuteWarning(true);
           }
@@ -203,7 +187,6 @@ const Call = () => {
       }, 1000);
       setCountdownInterval(interval);
 
-      // End call after the duration
       const timer = setTimeout(() => {
         handleEndCall();
         toast.info(
@@ -218,13 +201,9 @@ const Call = () => {
               Upgrade to Premium
             </button>
           </div>,
-          {
-            position: "top-center",
-            autoClose: false,
-            closeOnClick: false,
-          },
+          { position: "top-center", autoClose: false, closeOnClick: false },
         );
-      }, CALL_DURATION_MS); // Use global variable
+      }, CALL_DURATION_MS);
       setCallTimer(timer);
     }
 
@@ -258,46 +237,39 @@ const Call = () => {
       clearInterval(countdownInterval);
       setCountdownInterval(null);
     }
-    setRemainingTime(CALL_DURATION_SECONDS); // Reset to global variable
+    setRemainingTime(CALL_DURATION_SECONDS);
     setShowOneMinuteWarning(false);
   };
 
   const handleFindMatch = () => {
-    if (connection) {
-      console.log("Invoking GetRandomUser...");
+    if (signalRClient) {
+      console.log("Finding a match...");
       setCallStatus("Finding a match...");
-      connection
-        .invoke("GetRandomUser")
-        .catch((err) => console.error("GetRandomUser invocation failed:", err));
+      signalRClient.getRandomUser(); // Use helper method
     }
   };
 
   const handleAcceptCall = () => {
-    if (connection && incomingCallerId) {
+    if (signalRClient && incomingCallerId) {
       console.log("Accepting call from:", incomingCallerId);
-      connection
-        .invoke("AcceptCall", incomingCallerId)
-        .catch((err) => console.error("AcceptCall invocation failed:", err));
+      signalRClient.acceptCall(incomingCallerId); // Use helper method
       setIncomingCallerId(null);
     }
   };
 
   const handleRejectCall = () => {
-    if (connection && incomingCallerId) {
+    if (signalRClient && incomingCallerId) {
       console.log("Rejecting call from:", incomingCallerId);
-      connection
-        .invoke("RejectCall", incomingCallerId)
-        .catch((err) => console.error("RejectCall invocation failed:", err));
+      signalRClient.rejectCall(incomingCallerId); // Use helper method
       setIncomingCallerId(null);
     }
   };
 
   const handleEndCall = () => {
-    if (connection) {
+    if (signalRClient && targetConnectionId) {
       console.log("Ending call...");
-      connection
-        .invoke("EndCall")
-        .catch((err) => console.error("EndCall invocation failed:", err));
+      const myConnectionId = signalRClient.connection.connectionId;
+      signalRClient.endCall(myConnectionId, targetConnectionId); // Pass both IDs
       cleanupCall();
       setCallStatus("Waiting for a match...");
       setTargetConnectionId(null);
@@ -370,7 +342,7 @@ const Call = () => {
           <button
             className="rounded-lg bg-blue-500 px-6 py-3 text-lg text-white hover:bg-blue-600 disabled:bg-gray-400"
             onClick={handleFindMatch}
-            disabled={!connection}
+            disabled={!signalRClient}
           >
             Find a Match
           </button>
