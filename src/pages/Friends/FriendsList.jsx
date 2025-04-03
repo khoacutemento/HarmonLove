@@ -25,7 +25,7 @@ const FriendsList = () => {
           setError(response.data.message);
         }
       } catch (err) {
-        setError("Có lỗi xảy ra khi tải danh sách bạn bè");
+        setError(err.response.data.message || "Error fetching friends");
         console.error("Error fetching friends:", err);
       } finally {
         setLoading(false);

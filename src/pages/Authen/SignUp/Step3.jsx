@@ -28,6 +28,7 @@ function Step3({ currentStep, setCurrentStep }) {
   const user = useSelector((state) => state.user);
   const [isAgree, setIsAgree] = useState(false);
   const [loading, setLoading] = useState(false);
+
   const formik = useFormik({
     initialValues: {
       userName: user.userName || "",
@@ -48,6 +49,7 @@ function Step3({ currentStep, setCurrentStep }) {
   });
 
   const handleBack = () => {
+    if (loading) return; // Prevent back navigation while loading
     dispatch(
       setCredentials({
         userName: formik.values.userName,
@@ -56,6 +58,7 @@ function Step3({ currentStep, setCurrentStep }) {
     );
     setCurrentStep(currentStep - 1);
   };
+
   function transGender(gender) {
     switch (gender.trim().toLowerCase()) {
       case "nam":
@@ -66,10 +69,14 @@ function Step3({ currentStep, setCurrentStep }) {
         return "Other";
     }
   }
+
   const handleRegister = async (e) => {
     e.preventDefault();
+    if (!formik.isValid || !isAgree || loading) return; // Prevent submission if invalid or loading
+
     localStorage.setItem("email", user.email);
     setLoading(true);
+
     try {
       const response = await register({
         userName: formik.values.userName,
@@ -89,13 +96,13 @@ function Step3({ currentStep, setCurrentStep }) {
       formik.resetForm();
       toast.success("Đang chuyển đến trang xác thực mã OTP");
       navigate("/verify-otp");
-
-      setLoading(false);
     } catch (error) {
-      toast.error(error);
+      toast.error(error.message || "Đăng ký thất bại");
+    } finally {
       setLoading(false);
     }
   };
+
   return (
     <form onSubmit={formik.handleSubmit} className="mt-5 w-full">
       <div className="mb-5 flex w-full flex-col gap-2 text-heading">
@@ -106,11 +113,12 @@ function Step3({ currentStep, setCurrentStep }) {
           type="text"
           id="userName"
           name="userName"
-          className="w-full rounded-xl border border-gray-400 bg-transparent px-4 py-2 placeholder-slate-400 outline-none backdrop-blur-sm"
+          className="w-full rounded-xl border border-gray-400 bg-transparent px-4 py-2 placeholder-slate-400 outline-none backdrop-blur-sm disabled:opacity-50"
           placeholder="username123@"
           value={formik.values.userName}
           onChange={formik.handleChange}
           onBlur={formik.handleBlur}
+          disabled={loading} // Disable input during loading
         />
         {formik.touched.userName && formik.errors.userName && (
           <p className="text-xs text-red-500">{formik.errors.userName}</p>
@@ -125,11 +133,12 @@ function Step3({ currentStep, setCurrentStep }) {
           type="password"
           id="password"
           name="password"
-          className="w-full rounded-xl border border-gray-400 bg-transparent px-4 py-2 placeholder-slate-400 outline-none backdrop-blur-sm"
+          className="w-full rounded-xl border border-gray-400 bg-transparent px-4 py-2 placeholder-slate-400 outline-none backdrop-blur-sm disabled:opacity-50"
           placeholder="Nhập mật khẩu"
           value={formik.values.password}
           onChange={formik.handleChange}
           onBlur={formik.handleBlur}
+          disabled={loading} // Disable input during loading
         />
         {formik.touched.password && formik.errors.password && (
           <p className="text-xs text-red-500">{formik.errors.password}</p>
@@ -144,11 +153,12 @@ function Step3({ currentStep, setCurrentStep }) {
           type="password"
           id="confirmPassword"
           name="confirmPassword"
-          className="w-full rounded-xl border border-gray-400 bg-transparent px-4 py-2 placeholder-slate-400 outline-none backdrop-blur-sm"
+          className="w-full rounded-xl border border-gray-400 bg-transparent px-4 py-2 placeholder-slate-400 outline-none backdrop-blur-sm disabled:opacity-50"
           placeholder="Nhập lại mật khẩu"
           value={formik.values.confirmPassword}
           onChange={formik.handleChange}
           onBlur={formik.handleBlur}
+          disabled={loading} // Disable input during loading
         />
         {formik.touched.confirmPassword && formik.errors.confirmPassword && (
           <p className="text-xs text-red-500">
@@ -163,8 +173,12 @@ function Step3({ currentStep, setCurrentStep }) {
           className="accent-heading"
           checked={isAgree}
           onChange={() => setIsAgree(!isAgree)}
+          disabled={loading} // Disable checkbox during loading
         />
-        <label onClick={() => setIsAgree(!isAgree)} className="cursor-pointer">
+        <label
+          onClick={() => !loading && setIsAgree(!isAgree)}
+          className={`cursor-pointer ${loading ? "opacity-50" : ""}`}
+        >
           Tôi đã đọc và đồng ý với các chính sách và điều khoản của Harmon
         </label>
       </div>
@@ -172,23 +186,25 @@ function Step3({ currentStep, setCurrentStep }) {
       <div className="mt-4 flex justify-between">
         <button
           type="button"
-          className="flex items-center gap-2 rounded-xl bg-heading px-4 py-2 text-white hover:opacity-80"
+          className="flex items-center gap-2 rounded-xl bg-heading px-4 py-2 text-white hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
           onClick={handleBack}
+          disabled={loading}
         >
-          <IoMdArrowRoundBack /> Trở về
+          <IoMdArrowRoundBack /> {loading ? "Đang xử lý..." : "Trở về"}
         </button>
       </div>
+
       <button
         type="button"
         className={`mt-10 w-full rounded-lg py-2 text-white ${
-          formik.isValid && isAgree
-            ? "bg-heading"
+          formik.isValid && isAgree && !loading
+            ? "bg-heading hover:opacity-80"
             : "cursor-not-allowed bg-gray-400"
         }`}
-        disabled={!formik.isValid || !isAgree}
+        disabled={!formik.isValid || !isAgree || loading}
         onClick={handleRegister}
       >
-        Đăng Ký
+        {loading ? "Đang đăng ký..." : "Đăng Ký"}
       </button>
     </form>
   );
