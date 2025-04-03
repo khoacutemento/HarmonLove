@@ -97,8 +97,7 @@ function Step3({ currentStep, setCurrentStep }) {
       toast.success("Đang chuyển đến trang xác thực mã OTP");
       navigate("/verify-otp");
     } catch (error) {
-      toast.error(error.message || "Đăng ký thất bại");
-    } finally {
+      toast.error(error.message);
       setLoading(false);
     }
   };
