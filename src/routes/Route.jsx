@@ -30,6 +30,8 @@ import FriendsAccept from "../pages/Friends/FriendsAccept";
 import FriendsDecline from "../pages/Friends/FriendsDecline";
 import FriendsProfile from "../pages/Friends/FriendsProfile";
 import ChatDetail from "../pages/Chat/ChatDetail";
+import BookingsPage from "../pages/Listener/BookingsPage";
+import ReviewPage from "../pages/Listener/ReviewPage";
 
 const ROLES = {
   CUSTOMER: "customer",
@@ -90,7 +92,11 @@ const sharedRoutes = [
 ];
 
 // Routes specific to listeners
-const listenerOnlyRoutes = [{ path: "workshift", element: <WorkShift /> }];
+const listenerOnlyRoutes = [
+  { path: "workshift", element: <WorkShift /> },
+  { path: "bookings", element: <BookingsPage /> },
+  { path: "review", element: <ReviewPage /> },
+];
 
 // Routes for admins (if needed in the future)
 const adminRoutes = [];

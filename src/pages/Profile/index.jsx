@@ -73,22 +73,34 @@ const Profile = () => {
     <div className="min-h-screen w-full bg-gray-100 p-6">
       <div className="mx-auto flex max-w-7xl flex-col gap-6 lg:flex-row">
         <ProfileInfo user={user} />
-        <div className="space-y-6 lg:w-1/2">
-          <WalletAndTransactions
-            walletBalance={walletBalance}
-            transactions={transactions}
-            currentPage={currentPage}
-            totalPages={totalPages}
-            setCurrentPage={setCurrentPage}
-          />
-          <Bookings
-            bookings={bookings}
-            currentBookingPage={currentBookingPage}
-            totalBookingPages={totalBookingPages}
-            setCurrentBookingPage={setCurrentBookingPage}
-            handleViewDetails={handleViewDetails}
-          />
-        </div>
+        {user.role.toLowerCase() !== "listener" ? (
+          <div className="space-y-6 lg:w-1/2">
+            <WalletAndTransactions
+              walletBalance={walletBalance}
+              transactions={transactions}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              setCurrentPage={setCurrentPage}
+            />
+            <Bookings
+              bookings={bookings}
+              currentBookingPage={currentBookingPage}
+              totalBookingPages={totalBookingPages}
+              setCurrentBookingPage={setCurrentBookingPage}
+              handleViewDetails={handleViewDetails}
+            />
+          </div>
+        ) : (
+          <div className="lg:w-1/2">
+            <WalletAndTransactions
+              walletBalance={walletBalance}
+              transactions={transactions}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              setCurrentPage={setCurrentPage}
+            />
+          </div>
+        )}
       </div>
       {showBookingModal && (
         <BookingModal

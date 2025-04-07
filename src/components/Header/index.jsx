@@ -73,6 +73,13 @@ const Header = () => {
     { key: 5, label: "Premium", path: "/premium" },
   ];
 
+  const itemsListener = [
+    { key: 1, label: "Ca Làm Việc", path: "/workshift" },
+    { key: 2, label: "Lịch Hẹn", path: "/bookings" },
+    { key: 3, label: "Đánh Giá", path: "/review" },
+    { key: 5, label: "Dashboard", path: "/dashboard" },
+  ];
+
   return (
     <header className="mx-auto w-full max-w-7xl rounded-lg bg-custom-gradient px-4 py-3 shadow-sm sm:rounded-xl sm:px-6 sm:py-4">
       <div className="mx-auto flex max-w-7xl items-center justify-between">
@@ -87,20 +94,35 @@ const Header = () => {
         {/* Desktop Navigation */}
         <nav className="hidden lg:block">
           <ul className="flex space-x-8 xl:space-x-16">
-            {items.map((item) => (
-              <li key={item.key}>
-                <Link
-                  to={item.path}
-                  className={`pb-1 text-lg font-medium text-gray-700 transition-colors hover:text-purple-600 ${
-                    currentPath.pathname === item.path
-                      ? "border-b-2 border-purple-600"
-                      : ""
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              </li>
-            ))}
+            {user.role.toLowerCase() !== "listener"
+              ? items.map((item) => (
+                  <li key={item.key}>
+                    <Link
+                      to={item.path}
+                      className={`pb-1 text-lg font-medium text-gray-700 transition-colors hover:text-purple-600 ${
+                        currentPath.pathname === item.path
+                          ? "border-b-2 border-purple-600"
+                          : ""
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  </li>
+                ))
+              : itemsListener.map((item) => (
+                  <li key={item.key}>
+                    <Link
+                      to={item.path}
+                      className={`pb-1 text-lg font-medium text-gray-700 transition-colors hover:text-purple-600 ${
+                        currentPath.pathname === item.path
+                          ? "border-b-2 border-purple-600"
+                          : ""
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  </li>
+                ))}
           </ul>
         </nav>
 
@@ -204,14 +226,11 @@ const Header = () => {
                     <li className="cursor-pointer px-4 py-2 hover:bg-gray-100">
                       <a href="/myblog"> Blog của tôi</a>
                     </li>
-                    {user.role.toLowerCase() === "listener" && (
+                    {user.role.toLowerCase() === "customer" && (
                       <li className="cursor-pointer px-4 py-2 hover:bg-gray-100">
-                        <a href="/personal/workshift"> Workshift của tôi</a>
+                        <a href="/deposit"> Nạp Tiền</a>
                       </li>
                     )}
-                    <li className="cursor-pointer px-4 py-2 hover:bg-gray-100">
-                      <a href="/deposit"> Nạp Tiền</a>
-                    </li>
                     <li
                       className="cursor-pointer px-4 py-2 text-red-500 hover:bg-gray-100"
                       onClick={handleLogout}
