@@ -23,7 +23,7 @@ const FriendsRequests = () => {
     const fetchFriends = async () => {
       try {
         const response = await axiosInstance.get(
-          `/friendship/account/${accountId}/status?status=Request&page=${currentPage}&size=${pageSize}`,
+          `/friendship/request?page=${currentPage}&size=${pageSize}`,
         );
         if (response.data.status === "200") {
           const friendItems = response.data.data.items.map((item) => ({
@@ -150,65 +150,61 @@ const FriendsRequests = () => {
             </p>
           </div>
         ) : (
-          <div className="flex grow flex-col">
-            <div className="grid grid-cols-2 gap-5">
-              {friends.map((friend) => (
-                <div
-                  key={friend.id}
-                  className="w-full min-w-[240px] rounded-lg border border-gray-300 bg-white shadow-md transition-transform hover:scale-105"
-                >
-                  <img
-                    src={handleImageProfile(friend.avatarUrl)}
-                    alt={friend.fullName}
-                    className="h-[240px] w-full rounded-t-lg object-cover hover:cursor-pointer"
-                    onClick={() => handleCardClick(friend.id)}
-                  />
-                  <div className="p-4">
-                    <div className="mb-3 text-lg font-semibold text-gray-800">
-                      {friend.fullName}
-                    </div>
-                    <div className="flex w-full gap-2 text-base text-gray-600">
-                      <span className="font-medium">Giới tính:</span>
-                      <span>{friend.gender}</span>
-                    </div>
-                    <div className="flex w-full gap-2 text-base text-gray-600">
-                      <span className="font-medium">Tuổi:</span>
-                      <span>{calculateAge(friend.dateOfBirth)}</span>
-                    </div>
-                    <div className="mt-4 flex gap-2">
-                      <button
-                        onClick={() =>
-                          handleAccept(friend.friendshipId, friend.id)
-                        }
-                        disabled={actionLoading[friend.id]}
-                        className={`flex-1 rounded-md px-4 py-2 text-white transition-colors ${
-                          actionLoading[friend.id]
-                            ? "cursor-not-allowed bg-green-300"
-                            : "bg-green-500 hover:bg-green-600"
-                        }`}
-                      >
-                        {actionLoading[friend.id]
-                          ? "Đang xử lý..."
-                          : "Chấp nhận"}
-                      </button>
-                      <button
-                        onClick={() =>
-                          handleDecline(friend.friendshipId, friend.id)
-                        }
-                        disabled={actionLoading[friend.id]}
-                        className={`flex-1 rounded-md px-4 py-2 text-white transition-colors ${
-                          actionLoading[friend.id]
-                            ? "cursor-not-allowed bg-red-300"
-                            : "bg-red-500 hover:bg-red-600"
-                        }`}
-                      >
-                        {actionLoading[friend.id] ? "Đang xử lý..." : "Từ chối"}
-                      </button>
-                    </div>
+          <div className="grid grid-cols-2 gap-5">
+            {friends.map((friend) => (
+              <div
+                key={friend.id}
+                className="w-full min-w-[240px] rounded-lg border border-gray-300 bg-white shadow-md transition-transform hover:scale-105"
+              >
+                <img
+                  src={handleImageProfile(friend.avatarUrl)}
+                  alt={friend.fullName}
+                  className="h-[240px] w-full rounded-t-lg object-cover hover:cursor-pointer"
+                  onClick={() => handleCardClick(friend.id)}
+                />
+                <div className="p-4">
+                  <div className="mb-3 text-lg font-semibold text-gray-800">
+                    {friend.fullName}
+                  </div>
+                  <div className="flex w-full gap-2 text-base text-gray-600">
+                    <span className="font-medium">Giới tính:</span>
+                    <span>{friend.gender}</span>
+                  </div>
+                  <div className="flex w-full gap-2 text-base text-gray-600">
+                    <span className="font-medium">Tuổi:</span>
+                    <span>{calculateAge(friend.dateOfBirth)}</span>
+                  </div>
+                  <div className="mt-4 flex gap-2">
+                    <button
+                      onClick={() =>
+                        handleAccept(friend.friendshipId, friend.id)
+                      }
+                      disabled={actionLoading[friend.id]}
+                      className={`flex-1 rounded-md px-4 py-2 text-white transition-colors ${
+                        actionLoading[friend.id]
+                          ? "cursor-not-allowed bg-green-300"
+                          : "bg-green-500 hover:bg-green-600"
+                      }`}
+                    >
+                      {actionLoading[friend.id] ? "Đang xử lý..." : "Chấp nhận"}
+                    </button>
+                    <button
+                      onClick={() =>
+                        handleDecline(friend.friendshipId, friend.id)
+                      }
+                      disabled={actionLoading[friend.id]}
+                      className={`flex-1 rounded-md px-4 py-2 text-white transition-colors ${
+                        actionLoading[friend.id]
+                          ? "cursor-not-allowed bg-red-300"
+                          : "bg-red-500 hover:bg-red-600"
+                      }`}
+                    >
+                      {actionLoading[friend.id] ? "Đang xử lý..." : "Từ chối"}
+                    </button>
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
             {totalPages > 1 && (
               <div className="mt-6 flex items-center justify-between text-gray-600">
                 <button

@@ -189,15 +189,6 @@ const Header = () => {
                   </span>
                 </button>
               </div>
-
-              <div className="relative">
-                <button className="relative rounded-full bg-purple-600 p-2">
-                  <AiFillBell className="text-lg text-white hover:opacity-80 sm:text-xl" />
-                  <span className="absolute -right-2 -top-3 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white sm:h-5 sm:w-5 sm:text-xs md:h-6 md:w-6 md:text-sm">
-                    5
-                  </span>
-                </button>
-              </div>
             </div>
           )}
           {user ? (
