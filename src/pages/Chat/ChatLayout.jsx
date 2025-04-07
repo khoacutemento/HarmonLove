@@ -10,10 +10,6 @@ const ChatLayout = () => {
   const [friends, setFriends] = useState([]);
   const [loadingFriends, setLoadingFriends] = useState(true);
   const [errorFriends, setErrorFriends] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const pageSize = 10;
-
   const storedUserToken = localStorage.getItem("token");
   const [selectedFriendId, setSelectedFriendId] = useState(friendId || null);
   const [connection, setConnection] = useState(null);
@@ -28,12 +24,10 @@ const ChatLayout = () => {
   useEffect(() => {
     const fetchFriends = async () => {
       try {
-        const response = await axiosInstance.get(
-          `/friendship/friend-list?page=${currentPage}&size=${pageSize}`,
-        );
+        const response = await axiosInstance.get(`/direct-chat/user`);
         if (response.data.status === "200") {
-          setFriends(response.data.data.items || []);
-          setTotalPages(response.data.data.totalPages);
+          setFriends(response.data.data || []);
+          console.log(response.data.data);
         } else {
           setErrorFriends(response.data.message);
         }
@@ -46,7 +40,7 @@ const ChatLayout = () => {
       }
     };
     fetchFriends();
-  }, [currentPage]);
+  }, []);
 
   useEffect(() => {
     if (!selectedFriendId) return;
@@ -128,13 +122,6 @@ const ChatLayout = () => {
       value,
     );
 
-  const handlePageChange = (newPage) => {
-    if (newPage >= 1 && newPage <= totalPages) {
-      setCurrentPage(newPage);
-      setLoadingFriends(true);
-    }
-  };
-
   const handleFriendClick = (friendId) => {
     setSelectedFriendId(friendId);
   };
@@ -157,49 +144,34 @@ const ChatLayout = () => {
             <div className="space-y-4">
               {friends.map((friend) => (
                 <div
-                  key={friend.id}
-                  onClick={() => handleFriendClick(friend.id)}
+                  key={friend.friend.id}
+                  onClick={() => handleFriendClick(friend.friend.id)}
                   className={`flex items-center rounded-md border p-3 shadow-sm hover:cursor-pointer hover:bg-gray-50 ${
-                    selectedFriendId === friend.id ? "bg-gray-100" : ""
+                    selectedFriendId === friend.friend.id ? "bg-gray-100" : ""
                   }`}
                 >
                   <img
-                    src={handleImageProfile(friend.avatar)}
-                    alt={friend.fullName}
+                    src={handleImageProfile(friend.friend.avatarUrl)}
+                    alt={friend.friend.fullName}
                     className="h-12 w-12 rounded-full object-cover"
                   />
                   <div className="ml-3">
                     <div className="text-base font-semibold text-gray-800">
-                      {friend.fullName}
+                      {friend.friend.fullName}
                     </div>
-                    <div className="text-sm text-gray-500">
-                      Nhấn để trò chuyện
-                    </div>
+                    {friend.latestMessage ? (
+                      <div className="text-sm font-bold text-gray-500">
+                        Tin nhắn: {friend.latestMessage}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-gray-500">
+                        Nhấn để trò chuyện
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
-            {totalPages > 1 && (
-              <div className="mt-4 flex items-center justify-between text-gray-600">
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="flex items-center gap-2 rounded-md bg-gray-200 px-3 py-1 hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <FaChevronLeft /> Trước
-                </button>
-                <span>
-                  Trang {currentPage} / {totalPages}
-                </span>
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="flex items-center gap-2 rounded-md bg-gray-200 px-3 py-1 hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Tiếp <FaChevronRight />
-                </button>
-              </div>
-            )}
           </>
         )}
       </div>
