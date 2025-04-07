@@ -8,6 +8,7 @@ import { loginSuccess } from "../../../app/slices/authSlice";
 import LoadingSpinner from "../../../components/Loading/LoadingSpinner";
 import LoadingDots from "../../../components/Loading/LoadingDots";
 import { fetchAccount } from "../../../app/slices/accountSlice";
+import LoginGoogle from "../LoginGoogle/LoginGoogle";
 
 function Login() {
   const dispatch = useDispatch();
@@ -102,10 +103,7 @@ function Login() {
         <div className="my-5 text-sm text-heading sm:text-base">Hoặc</div>
 
         <div className="flex w-full max-w-xs cursor-pointer items-center justify-center gap-3 rounded-lg bg-white p-2 shadow-md transition-all hover:shadow-lg">
-          <img src={Google_Logo} alt="Google" className="h-8 w-8" />
-          <p className="text-center text-sm font-medium sm:text-lg">
-            Đăng nhập bằng Google
-          </p>
+          <LoginGoogle />
         </div>
         <div className="mt-5 text-heading">
           Bạn chưa có tài khoản?{" "}
