@@ -174,7 +174,7 @@ const WorkShift = () => {
         setMessage(response.data.message);
       }
     } catch (error) {
-      setMessage("Có lỗi xảy ra khi tạo ca làm việc");
+      setMessage(error.response.data.message);
       console.error("Error creating workshift:", error);
     } finally {
       setIsSubmitting(false);
@@ -234,7 +234,8 @@ const WorkShift = () => {
         setMessage(response.data.message);
       }
     } catch (error) {
-      setMessage("Có lỗi xảy ra khi cập nhật ca làm việc");
+      setMessage(error.response.data.message);
+      console.log("Error updating workshift:", error.response);
       console.error("Error updating workshift:", error);
     } finally {
       setIsSubmitting(false);
