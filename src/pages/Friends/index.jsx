@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import SideBar from "./SideBar";
 import axiosInstance from "../../config/axios";
+import { handleImageProfile } from "../../utils/format";
 
 function Friends() {
   const [searchPhone, setSearchPhone] = useState(""); // State for the phone number input
@@ -37,7 +38,7 @@ function Friends() {
 
   // Function to handle clicking on a search result
   const handleResultClick = (userId) => {
-    navigate(`/user/${userId}/add`); // Navigate to the user's profile with "add" action
+    navigate(`/user/${userId}`); // Navigate to the user's profile with "add" action
   };
 
   return (
@@ -91,9 +92,7 @@ function Friends() {
               onClick={() => handleResultClick(searchResults.id)}
             >
               <img
-                src={
-                  searchResults.avatarUrl || "https://via.placeholder.com/50"
-                }
+                src={handleImageProfile(searchResults.avatarUrl)}
                 alt={searchResults.fullName}
                 className="h-12 w-12 rounded-full object-cover"
               />

@@ -29,6 +29,7 @@ import WorkShift from "../pages/WorkShift";
 import FriendsAccept from "../pages/Friends/FriendsAccept";
 import FriendsDecline from "../pages/Friends/FriendsDecline";
 import FriendsProfile from "../pages/Friends/FriendsProfile";
+import ChatDetail from "../pages/Chat/ChatDetail";
 
 const ROLES = {
   CUSTOMER: "customer",
@@ -48,11 +49,9 @@ const publicRoutes = [
 
 // Routes for both customers and listeners
 const sharedRoutes = [
-  {
-    path: "chats",
-    element: <Chat />,
-  },
-  { path: "user/:id/:action", element: <FriendsProfile /> },
+  { path: "user/:id", element: <FriendsProfile /> },
+  { path: "chats", element: <Chat /> },
+  { path: "chat/:friendId", element: <ChatDetail /> },
   {
     path: "friends",
     element: <Friends />,

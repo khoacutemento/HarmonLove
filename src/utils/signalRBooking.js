@@ -1,138 +1,201 @@
 import * as signalR from "@microsoft/signalr";
 
-export const initSignalR = (handlers) => {
-  const token = localStorage.getItem("token");
-  console.log("Initializing SignalR with token:", token);
+export const initSignalR = ({
+  onIncomingCall,
+  onCallAccepted,
+  onCallRejected,
+  onCallEnded,
+  onReceiveOffer,
+  onReceiveAnswer,
+  onReceiveCandidate,
+  onGetUserForBooking,
+  onNoAvailableUsers,
+  onConnectedForBooking, // Optional callback for connection success
+}) => {
+  console.log("Setting up SignalR connection for CallBookingHub...");
 
   const connection = new signalR.HubConnectionBuilder()
-    .withUrl("https://harmon.love/callbookinghub", {
-      accessTokenFactory: () => token,
+    .withUrl("https://harmon.love/callBookingHub", {
+      accessTokenFactory: async () => {
+        const token = localStorage.getItem("token");
+        console.log("Fetching token from localStorage:", { token });
+        if (!token) {
+          console.error("No token found in localStorage");
+          throw new Error("No token found in localStorage");
+        }
+        return token;
+      },
     })
-    .withAutomaticReconnect()
+    .withAutomaticReconnect([0, 2000, 10000, 30000])
+    .configureLogging(signalR.LogLevel.Information)
     .build();
-  console.log("SignalR connection built:", connection);
 
-  // Register event handlers with logging
+  // Start the connection and trigger onConnectedForBooking
+  connection
+    .start()
+    .then(() => {
+      console.log("SignalR connected successfully:", {
+        connectionId: connection.connectionId,
+      });
+      if (onConnectedForBooking) {
+        onConnectedForBooking(connection.connectionId);
+      }
+    })
+    .catch((err) => console.error("SignalR connection failed:", err));
+
+  // Event handlers aligned with backend SendAsync calls
   connection.on("IncomingCall", (callerConnectionId) => {
-    console.log("SignalR Event: IncomingCall received", { callerConnectionId });
-    handlers.onIncomingCall(callerConnectionId);
+    console.log("IncomingCall received:", { callerConnectionId });
+    if (onIncomingCall) onIncomingCall(callerConnectionId);
   });
-  connection.on("CallAccepted", (targetId) => {
-    console.log("SignalR Event: CallAccepted received", { targetId });
-    handlers.onCallAccepted(targetId);
+
+  connection.on("CallAccepted", (targetConnectionId) => {
+    console.log("CallAccepted received:", { targetConnectionId });
+    if (onCallAccepted) onCallAccepted(targetConnectionId);
   });
+
   connection.on("CallRejected", () => {
-    console.log("SignalR Event: CallRejected received");
-    handlers.onCallRejected();
+    console.log("CallRejected received");
+    if (onCallRejected) onCallRejected();
   });
+
   connection.on("CallEnded", () => {
-    console.log("SignalR Event: CallEnded received");
-    handlers.onCallEnded();
+    console.log("CallEnded received");
+    if (onCallEnded) onCallEnded();
   });
-  connection.on("ReceiveOffer", (callerId, offer) => {
-    console.log("SignalR Event: ReceiveOffer received", { callerId, offer });
-    handlers.onReceiveOffer(callerId, offer);
+
+  connection.on("ReceiveOffer", (callerConnectionId, offer) => {
+    console.log("ReceiveOffer received:", { callerConnectionId, offer });
+    if (onReceiveOffer) onReceiveOffer(callerConnectionId, offer);
   });
-  connection.on("ReceiveAnswer", (callerId, answer) => {
-    console.log("SignalR Event: ReceiveAnswer received", { callerId, answer });
-    handlers.onReceiveAnswer(callerId, answer);
+
+  connection.on("ReceiveAnswer", (callerConnectionId, answer) => {
+    console.log("ReceiveAnswer received:", { callerConnectionId, answer });
+    if (onReceiveAnswer) onReceiveAnswer(callerConnectionId, answer);
   });
-  connection.on("ReceiveCandidate", (callerId, candidate) => {
-    console.log("SignalR Event: ReceiveCandidate received", {
-      callerId,
+
+  connection.on("ReceiveCandidate", (callerConnectionId, candidate) => {
+    console.log("ReceiveCandidate received:", {
+      callerConnectionId,
       candidate,
     });
-    handlers.onReceiveCandidate(callerId, candidate);
+    if (onReceiveCandidate) onReceiveCandidate(callerConnectionId, candidate);
   });
+
   connection.on("UserSelected", (targetConnectionId) => {
-    console.log("SignalR Event: UserSelected received", { targetConnectionId });
-    handlers.onGetUserForBooking(targetConnectionId);
+    console.log("UserSelected received:", { targetConnectionId });
+    if (onGetUserForBooking) onGetUserForBooking(targetConnectionId);
   });
+
   connection.on("NoAvailableUsers", () => {
-    console.log("SignalR Event: NoAvailableUsers received");
-    handlers.onNoAvailableUsers();
+    console.log("NoAvailableUsers received");
+    if (onNoAvailableUsers) onNoAvailableUsers();
   });
 
-  // Helper to ensure connection is started before invoking
-  const ensureConnected = async () => {
-    if (connection.state !== signalR.HubConnectionState.Connected) {
-      console.log("Connection not yet started, attempting to start...", {
-        state: connection.state,
-      });
-      await connection.start();
-      console.log("Connection started successfully");
-    }
-  };
+  // Reconnection and closure handling
+  connection.onreconnecting((err) => {
+    console.log("SignalR reconnecting:", { error: err });
+  });
 
-  // Return client with helper methods and logging
+  connection.onreconnected(() => {
+    console.log("SignalR reconnected successfully:", {
+      connectionId: connection.connectionId,
+    });
+    if (onConnectedForBooking) {
+      onConnectedForBooking(connection.connectionId);
+    }
+  });
+
+  connection.onclose((err) => {
+    console.log("SignalR connection closed:", { error: err });
+  });
+
+  // Exposed API for invoking hub methods
   return {
     connection,
-    getUserForBooking: async (accountId) => {
-      console.log("Invoking GetUserForBooking", { accountId });
-      await ensureConnected();
-      return connection.invoke("GetUserForBooking", accountId);
+    getUserForBooking: (accountId) => {
+      console.log("Invoking GetUserForBooking:", { accountId });
+      return connection
+        .invoke("GetUserForBooking", accountId)
+        .then(() => console.log("GetUserForBooking invoked successfully"))
+        .catch((err) => {
+          console.error("GetUserForBooking failed:", err);
+          throw err;
+        });
     },
-    startCall: async (targetId) => {
-      console.log("Invoking StartCall", { targetId });
-      await ensureConnected();
-      return connection.invoke("StartCall", targetId);
+    startCall: (targetConnectionId) => {
+      console.log("Invoking StartCall:", { targetConnectionId });
+      return connection
+        .invoke("StartCall", targetConnectionId)
+        .then(() => console.log("StartCall invoked successfully"))
+        .catch((err) => {
+          console.error("StartCall failed:", err);
+          throw err;
+        });
     },
-    acceptCall: async (myAccountId, targetAccountId, targetId) => {
-      console.log("Invoking AcceptCall", {
-        myAccountId,
-        targetAccountId,
-        targetId,
+    acceptCall: (accountId1, callerConnectionId) => {
+      console.log("Invoking AcceptCall:", { accountId1, callerConnectionId });
+      return connection
+        .invoke("AcceptCall", accountId1, callerConnectionId)
+        .then(() => console.log("AcceptCall invoked successfully"))
+        .catch((err) => {
+          console.error("AcceptCall failed:", err);
+          throw err;
+        });
+    },
+    rejectCall: (accountId1, callerConnectionId, accountId) => {
+      console.log("Invoking RejectCall:", {
+        accountId1,
+        callerConnectionId,
+        accountId2: accountId,
       });
-      await ensureConnected();
-      return connection.invoke(
-        "AcceptCall",
-        myAccountId,
-        targetAccountId,
-        targetId,
-      );
+      return connection
+        .invoke("RejectCall", accountId1, callerConnectionId, accountId)
+        .then(() => console.log("RejectCall invoked successfully"))
+        .catch((err) => {
+          console.error("RejectCall failed:", err);
+          throw err;
+        });
     },
-    rejectCall: async (accountId1, accountId2, callerConnectionId) => {
-      console.log("Invoking RejectCall", {
-        accountId1,
-        accountId2,
-        callerConnectionId,
-      });
-      await ensureConnected();
-      return connection.invoke(
-        "RejectCall",
-        accountId1,
-        accountId2,
-        callerConnectionId,
-      );
+    endCall: (accountId1, callerConnectionId) => {
+      console.log("Invoking EndCall:", { accountId1, callerConnectionId });
+      return connection
+        .invoke("EndCall", accountId1, callerConnectionId)
+        .then(() => console.log("EndCall invoked successfully"))
+        .catch((err) => {
+          console.error("EndCall failed:", err);
+          throw err;
+        });
     },
-    endCall: async (accountId1, accountId2, callerConnectionId) => {
-      console.log("Invoking EndCall", {
-        accountId1,
-        accountId2,
-        callerConnectionId,
-      });
-      await ensureConnected();
-      return connection.invoke(
-        "EndCall",
-        accountId1,
-        accountId2,
-        callerConnectionId,
-      );
+    sendOffer: (targetConnectionId, offer) => {
+      console.log("Invoking SendOffer:", { targetConnectionId, offer });
+      return connection
+        .invoke("SendOffer", targetConnectionId, offer)
+        .then(() => console.log("SendOffer invoked successfully"))
+        .catch((err) => {
+          console.error("SendOffer failed:", err);
+          throw err;
+        });
     },
-    sendOffer: async (targetId, offer) => {
-      console.log("Invoking SendOffer", { targetId, offer });
-      await ensureConnected();
-      return connection.invoke("SendOffer", targetId, offer);
+    sendAnswer: (targetConnectionId, answer) => {
+      console.log("Invoking SendAnswer:", { targetConnectionId, answer });
+      return connection
+        .invoke("SendAnswer", targetConnectionId, answer)
+        .then(() => console.log("SendAnswer invoked successfully"))
+        .catch((err) => {
+          console.error("SendAnswer failed:", err);
+          throw err;
+        });
     },
-    sendAnswer: async (targetId, answer) => {
-      console.log("Invoking SendAnswer", { targetId, answer });
-      await ensureConnected();
-      return connection.invoke("SendAnswer", targetId, answer);
-    },
-    sendCandidate: async (targetId, candidate) => {
-      console.log("Invoking SendCandidate", { targetId, candidate });
-      await ensureConnected();
-      return connection.invoke("SendCandidate", targetId, candidate);
+    sendCandidate: (targetConnectionId, candidate) => {
+      console.log("Invoking SendCandidate:", { targetConnectionId, candidate });
+      return connection
+        .invoke("SendCandidate", targetConnectionId, candidate)
+        .then(() => console.log("SendCandidate invoked successfully"))
+        .catch((err) => {
+          console.error("SendCandidate failed:", err);
+          throw err;
+        });
     },
   };
 };

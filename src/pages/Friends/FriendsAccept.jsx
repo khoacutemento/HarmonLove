@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axiosInstance from "../../config/axios";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import { handleImageProfile } from "../../utils/format";
 
 const FriendsAccept = () => {
   const storedUser = localStorage.getItem("user");
@@ -116,7 +117,7 @@ const FriendsAccept = () => {
                 onClick={() => handleCardClick(friend.id)} // Add click handler
               >
                 <img
-                  src={friend.avatarUrl}
+                  src={handleImageProfile(friend.avatarUrl)}
                   alt={friend.fullName}
                   className="h-[240px] w-full rounded-t-lg object-cover"
                 />

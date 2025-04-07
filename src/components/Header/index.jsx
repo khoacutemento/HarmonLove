@@ -204,12 +204,11 @@ const Header = () => {
                     <li className="cursor-pointer px-4 py-2 hover:bg-gray-100">
                       <a href="/myblog"> Blog của tôi</a>
                     </li>
-                    <li className="cursor-pointer px-4 py-2 hover:bg-gray-100">
-                      <a href="/personal/workshift"> Workshift của tôi</a>
-                    </li>
-                    <li className="cursor-pointer px-4 py-2 hover:bg-gray-100">
-                      <a href="/chats"> Chat</a>
-                    </li>
+                    {user.role.toLowerCase() === "listener" && (
+                      <li className="cursor-pointer px-4 py-2 hover:bg-gray-100">
+                        <a href="/personal/workshift"> Workshift của tôi</a>
+                      </li>
+                    )}
                     <li className="cursor-pointer px-4 py-2 hover:bg-gray-100">
                       <a href="/deposit"> Nạp Tiền</a>
                     </li>

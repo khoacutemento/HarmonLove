@@ -25,7 +25,7 @@ function Blog() {
   }, []);
 
   return (
-    <div className="mx-auto mt-10 max-w-3xl">
+    <div className="mx-auto mt-10 min-h-screen w-full max-w-4xl">
       <CreateBlog />
       {blogs && blogs.length > 0 ? (
         blogs.map((post) => (

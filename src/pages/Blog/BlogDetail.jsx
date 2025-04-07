@@ -46,9 +46,9 @@ const BlogDetail = () => {
   }
 
   return (
-    <div className="m-10 mx-auto flex min-h-3.5 w-full max-w-7xl flex-col rounded-lg bg-white px-4 py-3 shadow-sm sm:rounded-xl sm:px-6 sm:py-4">
+    <div className="m-10 mx-auto flex min-h-[50vh] w-full max-w-7xl flex-col rounded-lg bg-white px-4 py-3 shadow-sm sm:rounded-xl sm:px-6 sm:py-4">
       <h1 className="mb-4 text-3xl font-bold text-gray-800">{blog.title}</h1>
-      <div className="prose prose-lg mb-6 flex-1 text-gray-700">
+      <div className="prose prose-lg mb-6 text-gray-700">
         {parse(blog.content)}
       </div>
       <div className="mt-auto flex items-center justify-between text-gray-600">

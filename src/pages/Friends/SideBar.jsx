@@ -44,7 +44,7 @@ function SideBar() {
   };
 
   return (
-    <div className="sticky top-0 flex h-screen flex-col items-start justify-start rounded-lg bg-custom-gradient p-2">
+    <div className="sticky top-0 flex h-full flex-col items-start justify-start rounded-lg bg-custom-gradient p-2">
       <h3 className="px-3 py-5 text-xl font-bold">Bạn Bè</h3>
       <div className="flex w-full flex-col items-start justify-start">
         {items.map((item) => (
