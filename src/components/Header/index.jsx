@@ -94,8 +94,8 @@ const Header = () => {
         {/* Desktop Navigation */}
         <nav className="hidden lg:block">
           <ul className="flex space-x-8 xl:space-x-16">
-            {user.role.toLowerCase() !== "listener"
-              ? items.map((item) => (
+            {user && user.role.toLowerCase() === "listener"
+              ? itemsListener.map((item) => (
                   <li key={item.key}>
                     <Link
                       to={item.path}
@@ -109,7 +109,7 @@ const Header = () => {
                     </Link>
                   </li>
                 ))
-              : itemsListener.map((item) => (
+              : items.map((item) => (
                   <li key={item.key}>
                     <Link
                       to={item.path}
