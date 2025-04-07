@@ -57,7 +57,10 @@ const VerifyOTP = () => {
           }
         } catch (error) {
           console.error(error);
-          toast.error("Có lỗi xảy ra khi mua gói Normal Premium");
+          toast.error(
+            error.response.data.message ||
+              "Có lỗi xảy ra khi mua gói Normal Premium",
+          );
         }
       };
 
@@ -65,7 +68,9 @@ const VerifyOTP = () => {
       navigate("/login");
     } catch (error) {
       console.error(error);
-      toast.error("Có lỗi xảy ra, vui lòng thử lại");
+      toast.error(
+        error.response.data.message || "Có lỗi xảy ra, vui lòng thử lại",
+      );
     } finally {
       setLoading(false);
     }
@@ -89,7 +94,10 @@ const VerifyOTP = () => {
       }
     } catch (error) {
       console.error("Error updating user presence:", error);
-      toast.error("Có lỗi khi cập nhật trạng thái người dùng");
+      toast.error(
+        error.response.data.message ||
+          "Có lỗi khi cập nhật trạng thái người dùng",
+      );
     }
   };
 
@@ -105,7 +113,7 @@ const VerifyOTP = () => {
         toast.error("Không thể gửi lại mã OTP");
       }
     } catch (error) {
-      toast.error("Không thể gửi lại mã OTP");
+      toast.error(error.response.data.message || "Không thể gửi lại mã OTP");
       console.log(error);
     } finally {
       setResendLoading(false); // Reset loading state

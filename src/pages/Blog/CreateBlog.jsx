@@ -114,7 +114,7 @@ const CreateBlog = () => {
         setMessage(response.data.message);
       }
     } catch (error) {
-      setMessage("Có lỗi xảy ra khi tạo blog");
+      setMessage(error.response.data.message || "Có lỗi xảy ra khi tạo blog");
       console.error("Error:", error);
     } finally {
       setIsSubmitting(false);
