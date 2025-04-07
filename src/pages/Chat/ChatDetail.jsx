@@ -68,13 +68,21 @@ const ChatDetail = () => {
       const formattedMessages = msgThread.map((msg) => ({
         senderId: msg.senderId,
         content: msg.content,
+        senderFullName: msg.senderFullName,
       }));
       setMessages(formattedMessages);
     });
 
-    connection.on("NewMessage", (sender, content) => {
-      console.log("[SignalR] Nhận NewMessage:", { sender, content });
-      setMessages((prev) => [...prev, { senderId: sender, content }]);
+    connection.on("NewMessage", (sender, content, senderFullName) => {
+      console.log("[SignalR] Nhận NewMessage:", {
+        sender,
+        content,
+        senderFullName,
+      });
+      setMessages((prev) => [
+        ...prev,
+        { senderId: sender, content, senderFullName: senderFullName },
+      ]);
     });
 
     connection.on("DirectChatId", (chatId) => {
@@ -167,7 +175,7 @@ const ChatDetail = () => {
                       : "bg-gray-200 text-gray-800"
                   }`}
                 >
-                  <strong>{msg.senderId}: </strong>
+                  <strong>{msg.senderFullName}: </strong>
                   {msg.content}
                 </div>
               </div>
