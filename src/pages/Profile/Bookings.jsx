@@ -8,6 +8,9 @@ const Bookings = ({
   setCurrentBookingPage,
   handleViewDetails,
 }) => {
+  const { role } = localStorage.getItem("user")
+    ? JSON.parse(localStorage.getItem("user"))
+    : {};
   const getStatusBadge = (status) => {
     switch (status) {
       case "Upcoming":
@@ -50,7 +53,11 @@ const Bookings = ({
             <table className="w-full text-left text-sm text-gray-600">
               <thead className="bg-gray-50 text-xs uppercase">
                 <tr>
-                  <th className="px-4 py-3">Người lắng nghe</th>
+                  {role.toLowerCase() === "listener" ? (
+                    <th className="px-4 py-3">Người đặt</th>
+                  ) : (
+                    <th className="px-4 py-3">Người lắng nghe</th>
+                  )}
                   <th className="px-4 py-3">Ngày</th>
                   <th className="px-4 py-3">Thời gian</th>
                   <th className="px-4 py-3">Trạng thái</th>
@@ -60,7 +67,11 @@ const Bookings = ({
               <tbody>
                 {bookings.map((booking) => (
                   <tr key={booking.id} className="border-b hover:bg-gray-50">
-                    <td className="px-4 py-3">{booking.listenerName}</td>
+                    <td className="px-4 py-3">
+                      {role.toLowerCase() === "listener"
+                        ? booking.userName
+                        : booking.listenerName}
+                    </td>
                     <td className="px-4 py-3">
                       {new Date(booking.date).toLocaleDateString()}
                     </td>

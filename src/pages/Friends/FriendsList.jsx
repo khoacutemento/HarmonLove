@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axiosInstance from "../../config/axios"; // Assuming this is your axios setup
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa"; // Pagination icons
 import { useNavigate } from "react-router-dom";
+import { handleImageProfile } from "../../utils/format";
 
 const FriendsList = () => {
   const [friends, setFriends] = useState([]);
@@ -73,7 +74,7 @@ const FriendsList = () => {
   }
 
   const handleCardClick = (friendId) => {
-    navigate(`/user/${friendId}/block`);
+    navigate(`/user/${friendId}`);
   };
 
   return (
@@ -93,7 +94,7 @@ const FriendsList = () => {
                 className="w-full min-w-[250px] rounded-md border border-gray-300 bg-white shadow-sm hover:cursor-pointer" // Added w-full and min-w-[250px]
               >
                 <img
-                  src={friend.avatarUrl || "https://via.placeholder.com/200"}
+                  src={handleImageProfile(friend.avatar)}
                   alt={friend.fullName}
                   className="h-[250px] w-full rounded-t-md object-cover" // Increased height from 200px to 250px
                 />

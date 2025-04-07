@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axiosInstance from "../../config/axios";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import { handleImageProfile } from "../../utils/format";
 
 const FriendsDecline = () => {
   const storedUser = localStorage.getItem("user");
@@ -109,7 +110,7 @@ const FriendsDecline = () => {
                 className="w-full min-w-[240px] rounded-lg border border-gray-300 bg-white shadow-md transition-transform hover:scale-105 hover:cursor-pointer"
               >
                 <img
-                  src={friend.avatarUrl}
+                  src={handleImageProfile(friend.avatarUrl)}
                   alt={friend.fullName}
                   className="h-[240px] w-full rounded-t-lg object-cover"
                 />
