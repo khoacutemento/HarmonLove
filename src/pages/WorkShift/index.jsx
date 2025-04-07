@@ -258,7 +258,7 @@ const WorkShift = () => {
         setMessage(response.data.message);
       }
     } catch (error) {
-      setMessage("Có lỗi xảy ra khi xóa ca làm việc");
+      setMessage(error.response.data.message);
       console.error("Error deleting workshift:", error);
     }
   };
