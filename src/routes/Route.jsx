@@ -32,6 +32,7 @@ import FriendsProfile from "../pages/Friends/FriendsProfile";
 import ChatDetail from "../pages/Chat/ChatDetail";
 import BookingsPage from "../pages/Listener/BookingsPage";
 import ReviewPage from "../pages/Listener/ReviewPage";
+import LoginGoogle from "../pages/Authen/LoginGoogle/LoginGoogle";
 
 const ROLES = {
   CUSTOMER: "customer",
@@ -45,6 +46,7 @@ const publicRoutes = [
   { path: "/home", element: <Home /> },
   { path: "/premium", element: <Premium /> },
   { path: "/listeners", element: <Listener /> },
+  { path: "/logingoogle", element: <LoginGoogle /> },
   { path: "/blogs", element: <Blog /> },
   { path: "/blogs/:id", element: <BlogDetail /> },
 ];

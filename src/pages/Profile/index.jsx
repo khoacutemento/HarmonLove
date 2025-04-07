@@ -4,11 +4,14 @@ import WalletAndTransactions from "./WalletAndTransactions";
 import Bookings from "./Bookings";
 import BookingModal from "./BookingModal";
 import { fetchUserData } from "../../services/profileService";
+import ListenerUpdateInfo from "../Listener/ListenerUpdateInfo";
+import axiosInstance from "../../config/axios";
 
 const Profile = () => {
   const storedUser = localStorage.getItem("user");
-  const { accountId } = storedUser ? JSON.parse(storedUser) : {};
+  const { accountId, role } = storedUser ? JSON.parse(storedUser) : {};
   const [user, setUser] = useState(null);
+  const [listenerData, setListenerData] = useState(null); // New state for listener-specific data
   const [transactions, setTransactions] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [walletBalance, setWalletBalance] = useState(0);
@@ -27,6 +30,7 @@ const Profile = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
+        // Fetch general user data
         const { user, walletBalance, transactions, bookings } =
           await fetchUserData(accountId, currentPage, currentBookingPage);
         setUser(user);
@@ -35,6 +39,18 @@ const Profile = () => {
         setTotalPages(transactions.totalPages);
         setBookings(bookings.items);
         setTotalBookingPages(bookings.totalPages);
+
+        // If the user is a listener, fetch listener-specific data
+        if (user.role.toLowerCase() === "listener") {
+          const listenerResponse = await axiosInstance.get(
+            `/listener/account/${accountId}`,
+          );
+          if (listenerResponse.data.status === "200") {
+            setListenerData(listenerResponse.data.data);
+          } else {
+            throw new Error("Không thể lấy thông tin người nghe");
+          }
+        }
       } catch (err) {
         setError(err.message);
       } finally {
@@ -69,6 +85,9 @@ const Profile = () => {
       </div>
     );
 
+  // Merge user and listenerData for the ListenerUpdateInfo component
+  const listenerUserData = listenerData ? { ...user, ...listenerData } : user;
+
   return (
     <div className="min-h-screen w-full bg-gray-100 p-6">
       <div className="mx-auto flex max-w-7xl flex-col gap-6 lg:flex-row">
@@ -99,6 +118,15 @@ const Profile = () => {
               totalPages={totalPages}
               setCurrentPage={setCurrentPage}
             />
+            {listenerData ? (
+              <ListenerUpdateInfo user={listenerUserData} />
+            ) : (
+              <div className="rounded-lg bg-white p-6 shadow">
+                <p className="text-gray-600">
+                  Đang tải thông tin người nghe...
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>
