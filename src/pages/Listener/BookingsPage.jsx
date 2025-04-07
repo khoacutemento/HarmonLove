@@ -60,7 +60,7 @@ const BookingsPage = () => {
 
   return (
     <div className="min-h-screen w-full bg-gray-100 p-6">
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-4xl">
         <h1 className="mb-6 text-2xl font-bold text-gray-800">
           Quản lý lịch hẹn
         </h1>
