@@ -20,7 +20,7 @@ const Chat = () => {
           `/friendship/friend-list?page=${currentPage}&size=${pageSize}`,
         );
         if (response.data.status === "200") {
-          setFriends(response.data.data.items);
+          setFriends(response.data.data.items || []);
           setTotalPages(response.data.data.totalPages);
         } else {
           setError(response.data.message);
