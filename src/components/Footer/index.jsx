@@ -78,7 +78,7 @@ const Footer = () => {
           <FaFacebookF className="text-lg text-white" />
         </div>
       ),
-      path: "/",
+      path: "https://www.facebook.com/harmon.sharing",
     },
     {
       key: 2,
@@ -88,7 +88,7 @@ const Footer = () => {
           <IoLogoInstagram className="text-lg text-white" />
         </div>
       ),
-      path: "/",
+      path: "https://www.instagram.com/weare_harmon_/",
     },
   ];
 

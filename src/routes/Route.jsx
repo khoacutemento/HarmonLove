@@ -33,6 +33,7 @@ import ChatDetail from "../pages/Chat/ChatDetail";
 import BookingsPage from "../pages/Listener/BookingsPage";
 import ReviewPage from "../pages/Listener/ReviewPage";
 import LoginGoogle from "../pages/Authen/LoginGoogle/LoginGoogle";
+import ChatLayout from "../pages/Chat/ChatLayout";
 
 const ROLES = {
   CUSTOMER: "customer",
@@ -54,8 +55,7 @@ const publicRoutes = [
 // Routes for both customers and listeners
 const sharedRoutes = [
   { path: "user/:id", element: <FriendsProfile /> },
-  { path: "chats", element: <Chat /> },
-  { path: "chat/:friendId", element: <ChatDetail /> },
+  { path: "chats", element: <ChatLayout /> },
   {
     path: "friends",
     element: <Friends />,
