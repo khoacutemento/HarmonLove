@@ -333,12 +333,14 @@ function Listener() {
       {listeners.length > 0 ? (
         <div className="grid w-full grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {listeners.map((listener, index) => (
-            <div
-              onClick={() => handleNavigate(listener.id)}
-              key={index}
-              className="relative hover:cursor-pointer"
-            >
+            <div key={index} className="relative hover:cursor-pointer">
               <Item listener={listener} />
+              <button
+                className="mt-2 w-full rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+                onClick={() => handleNavigate(listener.id)}
+              >
+                Xem Chi Tiết
+              </button>
               <button
                 className="mt-2 w-full rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
                 onClick={() => handleBookListener(listener)}
