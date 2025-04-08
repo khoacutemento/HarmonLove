@@ -278,10 +278,6 @@ const FriendsProfile = () => {
               <p className="font-medium">{userData.userInfo.premium.match}</p>
             </div>
             <div>
-              <p className="text-gray-600">Price</p>
-              <p className="font-medium">${userData.userInfo.premium.price}</p>
-            </div>
-            <div>
               <p className="text-gray-600">Start Date</p>
               <p className="font-medium">
                 {new Date(userData.userInfo.dateStart).toLocaleDateString()}
