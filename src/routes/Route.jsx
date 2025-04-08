@@ -35,6 +35,7 @@ import ReviewPage from "../pages/Listener/ReviewPage";
 import LoginGoogle from "../pages/Authen/LoginGoogle/LoginGoogle";
 import ChatLayout from "../pages/Chat/ChatLayout";
 import ListenerProfile from "../pages/Listener/ListenerProfile";
+import ListenerDashboard from "../pages/Listener/ListenerDashBoard";
 
 const ROLES = {
   CUSTOMER: "customer",
@@ -51,6 +52,7 @@ const publicRoutes = [
   { path: "/logingoogle", element: <LoginGoogle /> },
   { path: "/blogs", element: <Blog /> },
   { path: "/blogs/:id", element: <BlogDetail /> },
+  { path: "/listener/dashboard", element: <ListenerDashboard /> },
 ];
 
 // Routes for both customers and listeners
@@ -58,6 +60,7 @@ const sharedRoutes = [
   { path: "user/:id", element: <FriendsProfile /> },
   { path: "listener/:id", element: <ListenerProfile /> },
   { path: "chats", element: <ChatLayout /> },
+  { path: "chat/:friendId", element: <ChatLayout /> },
   {
     path: "friends",
     element: <Friends />,
@@ -100,6 +103,7 @@ const listenerOnlyRoutes = [
   { path: "workshift", element: <WorkShift /> },
   { path: "bookings", element: <BookingsPage /> },
   { path: "review", element: <ReviewPage /> },
+  // { path: "listener/dashboard", element: <ListenerDashboard /> },
 ];
 
 // Routes for admins (if needed in the future)

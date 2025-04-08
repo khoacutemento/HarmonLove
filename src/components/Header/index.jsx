@@ -77,7 +77,7 @@ const Header = () => {
     { key: 1, label: "Ca Làm Việc", path: "/workshift" },
     { key: 2, label: "Lịch Hẹn", path: "/bookings" },
     { key: 3, label: "Đánh Giá", path: "/review" },
-    { key: 5, label: "Dashboard", path: "/dashboard" },
+    { key: 5, label: "Dashboard", path: "/listener/dashboard" },
   ];
 
   return (
