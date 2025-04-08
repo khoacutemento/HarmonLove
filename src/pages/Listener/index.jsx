@@ -106,7 +106,7 @@ function Listener() {
         try {
           const formattedDate = selectedDate.toISOString().split("T")[0];
           const response = await axiosInstance.get(
-            `/api/workshift/account/${selectedListener.accountId}/available?date=${formattedDate}`,
+            `/api/workshift/account/${selectedListener.getAccountResponse.id}/available?date=${formattedDate}`,
           );
           console.log("Available slots:", response.data.data);
           if (response.data.status === "200") {
@@ -152,6 +152,7 @@ function Listener() {
   };
 
   const handleBookListener = (listener) => {
+    console.log(listener);
     setSelectedListener(listener);
     setSelectedDate(new Date("2025-03-25"));
     setAvailableSlots([]);
