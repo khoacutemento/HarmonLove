@@ -29,13 +29,12 @@ import WorkShift from "../pages/WorkShift";
 import FriendsAccept from "../pages/Friends/FriendsAccept";
 import FriendsDecline from "../pages/Friends/FriendsDecline";
 import FriendsProfile from "../pages/Friends/FriendsProfile";
-import ChatDetail from "../pages/Chat/ChatDetail";
 import BookingsPage from "../pages/Listener/BookingsPage";
 import ReviewPage from "../pages/Listener/ReviewPage";
 import LoginGoogle from "../pages/Authen/LoginGoogle/LoginGoogle";
 import ChatLayout from "../pages/Chat/ChatLayout";
 import ListenerProfile from "../pages/Listener/ListenerProfile";
-import ListenerDashboard from "../pages/Listener/ListenerDashBoard";
+import ListenerDashboard from "../pages/Listener/ListenerDashboard";
 
 const ROLES = {
   CUSTOMER: "customer",
@@ -102,7 +101,7 @@ const listenerOnlyRoutes = [
   { path: "workshift", element: <WorkShift /> },
   { path: "bookings", element: <BookingsPage /> },
   { path: "review", element: <ReviewPage /> },
-  { path: "/listener/dashboard", element: <ListenerDashboard /> },
+  { path: "listener/dashboard", element: <ListenerDashboard /> },
 ];
 
 // Routes for admins (if needed in the future)
