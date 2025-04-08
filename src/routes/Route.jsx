@@ -52,7 +52,6 @@ const publicRoutes = [
   { path: "/logingoogle", element: <LoginGoogle /> },
   { path: "/blogs", element: <Blog /> },
   { path: "/blogs/:id", element: <BlogDetail /> },
-  { path: "/listener/dashboard", element: <ListenerDashboard /> },
 ];
 
 // Routes for both customers and listeners
@@ -103,7 +102,7 @@ const listenerOnlyRoutes = [
   { path: "workshift", element: <WorkShift /> },
   { path: "bookings", element: <BookingsPage /> },
   { path: "review", element: <ReviewPage /> },
-  // { path: "listener/dashboard", element: <ListenerDashboard /> },
+  { path: "/listener/dashboard", element: <ListenerDashboard /> },
 ];
 
 // Routes for admins (if needed in the future)
