@@ -206,6 +206,10 @@ function Listener() {
     setAvailableSlots([]);
   };
 
+  const handleNavigate = (listenerId) => {
+    navigate(`/listener/${listenerId}`);
+  };
+
   return (
     <div className="my-10 flex w-full max-w-[90rem] flex-col items-start px-4 md:px-8">
       <h1 className="text-xl font-bold text-heading md:text-3xl">
@@ -329,7 +333,11 @@ function Listener() {
       {listeners.length > 0 ? (
         <div className="grid w-full grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {listeners.map((listener, index) => (
-            <div key={index} className="relative">
+            <div
+              onClick={() => handleNavigate(listener.id)}
+              key={index}
+              className="relative hover:cursor-pointer"
+            >
               <Item listener={listener} />
               <button
                 className="mt-2 w-full rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
